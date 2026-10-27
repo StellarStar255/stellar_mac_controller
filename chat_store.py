@@ -18,7 +18,7 @@ import time
 import uuid
 from pathlib import Path
 
-ROOT = Path.home() / "Documents" / "Mac 控制台"
+ROOT = Path(os.environ["MAC_CTRL_DATA_DIR"]) if os.environ.get("MAC_CTRL_DATA_DIR") else Path.home() / "Documents" / "Mac 控制台"
 META = ".chat.json"
 _CONTEXT_PREFIX = re.compile(r"^\[当前时间[^\]]*\]\n?")
 _SKIP_USER = {"Continue from where you left off."}

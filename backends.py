@@ -24,6 +24,30 @@ CODEX = shutil.which("codex") or "/opt/homebrew/bin/codex"
 MAX_STEPS = 60
 
 
+def mcp_command():
+    return (sys.executable, ["--mcp"] if getattr(sys, "frozen", False)
+            else [str(HERE / "mcp_server.py")])
+
+
+def cli_prefix(executable, package, entry):
+    if sys.platform == "win32" and Path(executable).suffix.lower() in {".cmd", ".bat"}:
+        # Invoke Node directly; passing JSON prompts through cmd.exe is unsafe.
+        script = Path(executable).parent / "node_modules" / package / entry
+        node = shutil.which("node")
+        if not node or not script.is_file():
+            raise RuntimeError("请安装原生 CLI，或确认 Node.js 与 npm 全局 CLI 的安装完整。")
+        return [node, str(script)]
+    return [executable]
+
+
+def terminate_process(proc, force=False):
+    if sys.platform == "win32":
+        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                       capture_output=True, timeout=10)
+    else:
+        os.killpg(proc.pid, signal.SIGKILL if force else signal.SIGTERM)
+
+
 def codex_model_catalog():
     """本机 CLI 的模型及推理档位目录；缓存不可用时保留默认和手动模型。"""
     cache = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))) / "models_cache.json"
@@ -103,6 +127,14 @@ SYSTEM_PROMPT = """你是运行在用户 Mac 上的操作助手，通过工具�
 - 权限或授权被拒绝时立即停止访问该应用，不得换工具绕过。报错包含“Computer Use was not approved to use”时，表示 Computer Use 未获目标应用的访问授权；不能据此说成 macOS 系统权限缺失或用户未登录。说明目标应用及原始报错，并请用户在桌面客户端的 Computer Use 设置中检查应用授权，再重试。
 - 用简体中文简洁地回答，完成后用一两句话说明做了什么、结果如何。"""
 
+if sys.platform != "darwin":
+    SYSTEM_PROMPT = (SYSTEM_PROMPT.replace("Mac", "电脑") +
+                     "\n当前系统是 " + sys.platform +
+                     "。只使用工具列表中提供的工具，不使用 AppleScript、Quartz 或 macOS 命令。"
+                     "Windows 优先 read_ui/ui_action；Linux X11 使用截图和坐标。"
+                     "浏览器使用截图/鼠标/键盘，当前平台不提供 web_read/web_act。"
+                     "Windows run_shell 使用 cmd.exe 语法，复杂脚本请显式调用 powershell；Linux 使用 POSIX shell。")
+
 
 class Bridge(QObject):
     text = pyqtSignal(str)                 # 模型说的话
@@ -172,7 +204,7 @@ class ClaudeCodeBackend:
         proc, self.proc = self.proc, None
         if proc and proc.poll() is None:
             try:   # 连同 MCP 服务和它正在跑的命令（curl 等）整组结束，避免留下孤儿进程
-                os.killpg(proc.pid, signal.SIGTERM)
+                terminate_process(proc)
             except ProcessLookupError:
                 pass
 
@@ -205,14 +237,15 @@ class ClaudeCodeBackend:
                 self.bridge.error.emit(f"发送给 Claude Code 失败：{e}")
 
     def _mcp_config(self):
+        executable, args = mcp_command()
         return json.dumps({"mcpServers": {"mac": {
-            "command": sys.executable, "args": [str(HERE / "mcp_server.py")],
+            "command": executable, "args": args,
             "env": {"MAC_CTRL_SELF_PID": str(self.self_pid), "MAC_CTRL_CONFIRM": "1" if self.confirm else "0",
                     "MAC_CTRL_CONFIRM_DELETE": "1" if self.confirm_delete else "0",
                     "MAC_CTRL_WORKDIR": self.workdir, "PYTHONPATH": str(HERE)}}}})
 
     def _start(self):
-        cmd = [CLAUDE, "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
+        cmd = cli_prefix(CLAUDE, "@anthropic-ai/claude-code", "cli.js") + ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
                "--mcp-config", self._mcp_config(), "--strict-mcp-config",
                "--tools", "Read", "--allowedTools", "mcp__mac", "Read",
                "--append-system-prompt", SYSTEM_PROMPT]
@@ -337,6 +370,7 @@ class CodexBackend(ClaudeCodeBackend):
         self.stop()
 
     def _command(self, files):
+        executable, args = mcp_command()
         # 原生命令工具关闭：Mac 操作统一经过现有 MCP 的确认逻辑。
         instructions = SYSTEM_PROMPT + "\n本程序只使用 mcp 的 mac 工具（由 Mac Controller 的 mac_tools.py 提供）操作 Mac 和读取文件；不要调用 ChatGPT Computer Use、cua_repl、浏览器插件、原生 shell 或 apply_patch。"
         config = codex_external_tool_overrides(self.workdir)
@@ -348,8 +382,8 @@ class CodexBackend(ClaudeCodeBackend):
             "enabled": True, "required": True,
             # 本项目的工具在 mac_tools.confirm 中处理用户配置的操作确认。
             "default_tools_approval_mode": "approve",
-            "command": sys.executable,
-            "args": [str(HERE / "mcp_server.py")],
+            "command": executable,
+            "args": args,
             "env": {"MAC_CTRL_SELF_PID": str(self.self_pid),
                                     "MAC_CTRL_CONFIRM": "1" if self.confirm else "0",
                                     "MAC_CTRL_CONFIRM_DELETE": "1" if self.confirm_delete else "0",
@@ -357,7 +391,7 @@ class CodexBackend(ClaudeCodeBackend):
         }
         if self.reasoning_effort:
             config["model_reasoning_effort"] = self.reasoning_effort
-        cmd = [CODEX, "exec"]
+        cmd = cli_prefix(CODEX, "@openai/codex", "bin/codex.js") + ["exec"]
         # TOML inline table 的键值用 =；字符串使用 JSON 转义（兼容 TOML 基本字符串）。
         def encode(value):
             if isinstance(value, dict):
@@ -490,7 +524,7 @@ class CodexBackend(ClaudeCodeBackend):
                     proc.wait(timeout=3)
                 except subprocess.TimeoutExpired:
                     try:
-                        os.killpg(proc.pid, signal.SIGKILL)
+                        terminate_process(proc, force=True)
                     except ProcessLookupError:
                         pass
                     proc.wait()
@@ -511,7 +545,7 @@ class ApiBackend:
         self.model = model or self.DEFAULT_MODEL
         os.environ["MAC_CTRL_CONFIRM"] = "1" if confirm else "0"
         os.environ["MAC_CTRL_SELF_PID"] = str(self_pid)
-        import mac_tools   # 环境变量要在导入前设好
+        import platform_tools as mac_tools   # 环境变量要在导入前设好
         mac_tools.CONFIRM, mac_tools.SELF_PID = confirm, self_pid
         mac_tools.CONFIRM_DELETE = confirm_delete
         self.tools = mac_tools

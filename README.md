@@ -1,6 +1,6 @@
 # Mac 控制台（stellar_mac_controller）
 
-用一句中文让助手直接使用这台 Mac 上的程序。PyQt6 界面，三种“大脑”可切换：
+用一句中文让助手直接使用电脑上的程序。支持 macOS、Windows 和 Linux X11，PyQt6 界面，三种“大脑”可切换：
 
 - **本机 Claude Code**（默认）：调用已登录的 `claude` 命令，不需要 API Key，费用走你的 Claude Code 账号。
 - **Claude API**：需要 `ANTHROPIC_API_KEY`（或点界面上的「API Key」填写），默认模型 `claude-opus-5`。
@@ -18,16 +18,44 @@ Codex 通过 `exec --json` 接入，Mac 操作统一使用本项目的 MCP 工�
 
 旧版本若出现 `Computer Use was not approved to use WeChat`，说明调用到了额外继承的 Computer Use 工具，不代表微信未登录，也不能据此判断 macOS 权限缺失。更新后重启控制台再检查调用工具；不能切换工具绕过已经拒绝的应用访问限制。
 
-## 运行
+## 安装与更新
 
-需要 macOS 和 Python 3.11 或更高版本。
+从 [最新 Release](https://github.com/StellarStar255/stellar_mac_controller/releases/latest) 下载对应安装包，无需自行安装 Python：
+
+| 系统 | 安装包 | 安装方式 |
+| --- | --- | --- |
+| macOS Apple Silicon | `macos-arm64.pkg` | 双击安装到应用程序目录 |
+| macOS Intel | `macos-x64.pkg` | 双击安装到应用程序目录 |
+| Windows 10/11 x64 | `windows-x64-setup.exe` | 双击按提示安装，生成桌面快捷方式，无需管理员权限 |
+| Ubuntu/Debian x64（Ubuntu 22.04+ 或相当版本） | `linux-x64.deb` | 双击交给系统软件安装器安装 |
+| 其它 Linux x64 / 用户目录安装 | `linux-x64.run` | 运行 `sh 下载的文件名.run`，安装到用户目录，应用菜单中启动 |
+
+设置面板的「检查更新」会下载对应平台安装包、核对 SHA-256 和文件大小，然后启动安装程序。macOS/Windows 仍需完成系统安装确认；Linux `.deb` 交给系统软件安装器，`.run` 自动替换用户目录内的程序。更新不删除对话、附件、笔记或设置。下载失败或校验失败会保留当前版本。
+
+安装包目前没有 Apple Developer / Windows Authenticode 证书，macOS 也未公证，系统可能显示首次安装确认。SHA256SUMS 是完整性校验，不代替发行者数字签名。
+
+Windows 使用 UI Automation 和鼠标键盘工具；Linux 提供 X11 截图、鼠标键盘、命令及笔记工具，不提供辅助功能树。macOS 的 AppleScript、`web_read/web_act` 不适用于 Windows/Linux；这些平台改用界面工具。Linux Wayland 暂不支持桌面控制，切换到 Xorg/X11 会话后使用。Linux 需要图形桌面的 Qt/X11 库，以及 `xclip`、`wmctrl`、`xdotool`；Ubuntu 可执行：
+
+```bash
+sudo apt-get install libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 xclip wmctrl xdotool
+```
+
+本机 Claude Code / Codex CLI 仍需另外安装并登录，或者选择 Claude API 填写自己的 API Key。安装包不附带任何账号或密钥。
+
+## 从源码运行
+
+需要 Python 3.11 或更高版本。macOS 使用原生接口，其它平台按上述兼容范围运行。
 
 ```bash
 python3 -m pip install -r requirements.txt
-python3 app.py
+python3 launcher.py
 ```
 
 也可以执行 `python3 make_app.py`，在本机生成可双击启动的「Mac 控制台.app」。生成的 App 会记录当前 Python 和项目路径，请在使用的电脑上生成；仓库不包含本机 App、截图、对话记录或凭据。
+
+## 构建与发布
+
+在目标系统安装依赖和 `pyinstaller==6.21.0` 后运行 `python packaging/build.py`。Windows 还需要 Inno Setup 6。`python packaging/smoke.py` 验证冻结后的界面、MCP 和安装包。版本在 `version.py` 中维护；推送相同版本的 `vX.Y.Z` tag 后，GitHub Actions 在四个原生环境（Mac ARM/Intel、Windows x64、Linux x64）构建并测试，全部成功后发布安装包、更新清单和 SHA256SUMS。普通手动运行只构建验证，不发布 Release。
 
 第一次运行需要在 **系统设置 → 隐私与安全性** 里给启动它的终端（或 Python）打开：
 - **辅助功能**：读取界面元素、模拟鼠标键盘

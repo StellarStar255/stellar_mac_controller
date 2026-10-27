@@ -35,7 +35,7 @@ class ToolError(Exception):
 
 def _screen_size():
     b = Quartz.CGDisplayBounds(Quartz.CGMainDisplayID())
-    return b.size.width, b.size.height
+    return (b.size.width, b.size.height) if b.size.width > 0 and b.size.height > 0 else (1920, 1080)
 
 
 def _model_scale():

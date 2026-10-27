@@ -6,7 +6,7 @@ stdout 只能输出协议消息，日志一律写 stderr。
 import json
 import sys
 
-import mac_tools
+import platform_tools as mac_tools
 
 
 def _reply(msg_id, result=None, error=None):

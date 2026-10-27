@@ -3,17 +3,19 @@ import tempfile
 import threading
 import tomllib
 import unittest
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import backends
-import Quartz
-
-# 沙箱/无显示器环境不提供真实屏幕尺寸；测试不操作桌面。
-with patch.object(Quartz, "CGDisplayBounds", return_value=SimpleNamespace(
-        size=SimpleNamespace(width=1920, height=1080))):
-    import mac_tools
+if sys.platform == "darwin":
+    import Quartz
+    with patch.object(Quartz, "CGDisplayBounds", return_value=SimpleNamespace(
+            size=SimpleNamespace(width=1920, height=1080))):
+        import mac_tools
+else:
+    import desktop_tools as mac_tools
 
 
 class Signal:
@@ -102,6 +104,7 @@ class BackendTests(unittest.TestCase):
         self.assertIn("/tmp/photo.png", cmd)
         self.assertNotIn("/tmp/document.pdf", cmd)
 
+    @unittest.skipIf(sys.platform == "win32", "POSIX fake CLI fixture")
     def test_subprocess_queue_and_session_restore(self):
         with tempfile.TemporaryDirectory() as tmp:
             fake = Path(tmp) / "fake-codex"
@@ -153,6 +156,7 @@ print(json.dumps({"type": "turn.completed", "usage": {}}), flush=True)
         self.assertEqual(signals.tool_result.values, [(True, "用户拒绝")])
         self.assertEqual(backend._handle_codex({"type": "turn.failed", "error": {"message": "未登录"}}), "未登录")
 
+    @unittest.skipIf(sys.platform == "win32", "POSIX fake CLI fixture")
     def test_stop_running_process_and_discard_queue(self):
         with tempfile.TemporaryDirectory() as tmp:
             fake = Path(tmp) / "fake-codex"
@@ -171,6 +175,7 @@ print(json.dumps({"type": "turn.completed", "usage": {}}), flush=True)
             self.assertFalse(backend.busy)
             self.assertEqual(backend.pending, [])
 
+    @unittest.skipIf(sys.platform == "win32", "POSIX fake CLI fixture")
     def test_computer_use_denial_is_not_reported_as_success(self):
         with tempfile.TemporaryDirectory() as tmp:
             fake = Path(tmp) / "fake-codex"

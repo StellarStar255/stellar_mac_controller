@@ -10,10 +10,9 @@ import sys
 import time
 from pathlib import Path
 
-import ApplicationServices as AX
 import PyQt6
-import Quartz
-from AppKit import NSApplicationActivateIgnoringOtherApps, NSRunningApplication, NSWorkspace
+if sys.platform == "darwin":
+    import ApplicationServices as AX
 
 # Anaconda 自带的 qt.conf 会把插件路径指到它自己的 Qt，这里强制用 PyQt6 自带的插件
 os.environ["QT_PLUGIN_PATH"] = os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins")
@@ -27,10 +26,13 @@ from PyQt6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFileDialog, QF
                              QVBoxLayout, QWidget)
 
 import chat_store
-import mac_tools
+import platform_tools as mac_tools
+from version import __version__
 from backends import ApiBackend, Bridge, ClaudeCodeBackend, CodexBackend, codex_models, codex_reasoning_levels
 
 HERE = Path(__file__).resolve().parent
+ASSET_DIR = (Path(tempfile.gettempdir()) / "stellar-mac-controller-icons"
+             if getattr(sys, "frozen", False) else HERE / "assets")
 BACKENDS = {"本机 Claude Code": ["（默认）", "opus", "sonnet", "haiku"],
             "本机 Codex": ["（默认）"],
             "Claude API": ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"]}
@@ -40,6 +42,8 @@ EXAMPLES = ["打开备忘录，新建一条笔记写上今天的待办",
             "音乐暂停，音量调到 30%"]
 PANES = {"辅助功能": "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
          "屏幕录制": "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"}
+if sys.platform != "darwin":
+    PANES = {}
 MINI_W, MINI_H = 360, 52
 
 TOOL_CN = {
@@ -75,7 +79,7 @@ ICON_PATHS = {   # 24×24 线条图标
 
 
 def svg_icon(name, color):
-    path = HERE / "assets" / f"{name}_{color.lstrip('#')}.svg"
+    path = ASSET_DIR / f"{name}_{color.lstrip('#')}.svg"
     if not path.exists():
         path.parent.mkdir(exist_ok=True)
         path.write_text(f'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">'
@@ -700,6 +704,12 @@ class MainWindow(QMainWindow):
         for i, w in enumerate((self.confirm_box, self.delete_confirm_box, self.refocus_box, self.mini_box, self.pin_box)):
             opts.addWidget(w, i // 2, i % 2)
         g.addLayout(opts, 4, 0, 1, 3)
+        from update_ui import UpdateController
+        self.updater = UpdateController(self)
+        update_btn = QPushButton(f"检查更新 · v{__version__}")
+        update_btn.clicked.connect(self.updater.check)
+        self.updater.button = update_btn
+        g.addWidget(update_btn, 5, 0, 1, 3)
         self.settings_card.hide()
         self.gear_btn.toggled.connect(self.settings_card.setVisible)
 
@@ -814,7 +824,7 @@ class MainWindow(QMainWindow):
         self.update_model_note()
         self.set_status(f"就绪 · {self.model_label()}")
         self.input.setFocus()
-        self.check_permissions(prompt=True)
+        self.check_permissions(prompt=not bool(os.environ.get("MACCTRL_GUI_SMOKE")))
         self.front_timer = QTimer(self, timeout=self.track_front, interval=700)
         self.front_timer.start()
         self.perm_timer = QTimer(self, timeout=self.check_permissions, interval=3000)
@@ -929,23 +939,25 @@ class MainWindow(QMainWindow):
 
     def check_permissions(self, prompt=False):
         missing = []
-        if not AX.AXIsProcessTrusted():
+        state = mac_tools.permissions()
+        if not state["accessibility"]:
             missing.append("辅助功能")
-            if prompt:
+            if prompt and sys.platform == "darwin":
                 AX.AXIsProcessTrustedWithOptions({AX.kAXTrustedCheckOptionPrompt: True})
-        if not Quartz.CGPreflightScreenCaptureAccess():
+        if not state["screen_recording"]:
             missing.append("屏幕录制")
         self.perm_bar.setVisible(bool(missing))
         for name, b in self.perm_btns.items():
             b.setVisible(name in missing)
         if missing:
-            self.perm_label.setText(f"缺少「{'」「'.join(missing)}」权限，部分操作受限")
+            self.perm_label.setText(f"缺少「{'」「'.join(missing)}」权限，部分操作受限" if sys.platform == "darwin"
+                                    else mac_tools.permission_hint(missing))
             self.perm_label.setToolTip(mac_tools.permission_hint(missing))
 
     def track_front(self):
-        a = NSWorkspace.sharedWorkspace().frontmostApplication()
-        if a is not None and a.processIdentifier() != os.getpid():
-            self.last_front = (a.localizedName(), a.processIdentifier())
+        a = mac_tools.frontmost_app()
+        if a:
+            self.last_front = (a["name"], a["pid"])
 
     def set_api_key(self):
         key, ok = QInputDialog.getText(self, "Claude API Key",
@@ -1107,9 +1119,10 @@ class MainWindow(QMainWindow):
         if self.mini_box.isChecked():
             self.enter_mini()
         if self.refocus_box.isChecked() and self.last_front:
-            app = NSRunningApplication.runningApplicationWithProcessIdentifier_(self.last_front[1])
-            if app is not None:
-                app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
+            try:
+                mac_tools.t_activate_app(self.last_front[0])
+            except Exception:
+                pass
 
     @staticmethod
     def store_files(files, folder):
@@ -1178,6 +1191,9 @@ class MainWindow(QMainWindow):
         self.refresh_history()
 
     def closeEvent(self, e):
+        if self.updater.worker and self.updater.worker.isRunning():
+            e.ignore()
+            return
         if self.backend:
             self.backend.shutdown()
         self.save_state()
@@ -1192,6 +1208,7 @@ def _log_exception(kind, value, tb):
 
 
 def main():
+    mac_tools.SELF_PID = os.getpid()
     sys.excepthook = _log_exception
     script = os.environ.get("MACCTRL_SELFTEST")
     if script:   # 自检：借用本 App 的系统权限跑测试脚本 —— open -n "Mac 控制台.app" --env MACCTRL_SELFTEST=<脚本路径>
@@ -1199,12 +1216,21 @@ def main():
         runpy.run_path(script, run_name="__main__")
         return
     app = QApplication(sys.argv)
+    if os.environ.get("MACCTRL_GUI_SMOKE"):
+        QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+        QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
+                          os.environ["MAC_CTRL_DATA_DIR"])
     app.setApplicationName("Mac 控制台")
     f = QFont(".AppleSystemUIFont")
     f.setPointSize(13)
     app.setFont(f)
     w = MainWindow()
     w.show()
+    if os.environ.get("MACCTRL_GUI_SMOKE"):
+        w.gear_btn.setChecked(True)
+        if image := os.environ.get("MACCTRL_SMOKE_IMAGE"):
+            QTimer.singleShot(350, lambda: w.grab().save(image))
+        QTimer.singleShot(700, app.quit)
     sys.exit(app.exec())
 
 

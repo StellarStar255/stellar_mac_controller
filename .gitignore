@@ -15,6 +15,7 @@ venv/
 htmlcov/
 build/
 dist/
+release/
 *.egg-info/
 
 # Local credentials, agent configuration, and logs

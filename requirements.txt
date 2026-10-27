@@ -1,6 +1,12 @@
 PyQt6
 anthropic
 pillow
-pyobjc-framework-Cocoa
-pyobjc-framework-Quartz
-pyobjc-framework-ApplicationServices
+certifi
+pyobjc-framework-Cocoa; sys_platform == "darwin"
+pyobjc-framework-Quartz; sys_platform == "darwin"
+pyobjc-framework-ApplicationServices; sys_platform == "darwin"
+pyautogui; sys_platform != "darwin"
+pyperclip; sys_platform != "darwin"
+mss; sys_platform != "darwin"
+pygetwindow; sys_platform == "win32"
+pywinauto; sys_platform == "win32"

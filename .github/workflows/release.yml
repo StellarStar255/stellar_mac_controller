@@ -1,0 +1,71 @@
+name: Build installers and release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: macos-arm64
+          - runner: macos-15-intel
+            platform: macos-x64
+          - runner: windows-2022
+            platform: windows-x64
+          - runner: ubuntu-22.04
+            platform: linux-x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 xvfb xauth xclip wmctrl xdotool
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt pyinstaller==6.21.0
+      - name: Verify release version
+        shell: bash
+        run: |
+          python -c 'from version import __version__; import os; ref=os.environ["GITHUB_REF"]; assert not ref.startswith("refs/tags/") or ref=="refs/tags/v"+__version__, "Version and tag mismatch"'
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Build installers
+        run: python packaging/build.py
+      - name: Smoke test frozen application and MCP
+        if: runner.os != 'Linux'
+        run: python packaging/smoke.py
+      - name: Smoke test Linux application and installer
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python packaging/smoke.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - run: python packaging/manifest.py release
+      - name: Publish installers, checksums and update manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --title "Mac Controller $GITHUB_REF_NAME" --notes-file packaging/release-notes.md --verify-tag
