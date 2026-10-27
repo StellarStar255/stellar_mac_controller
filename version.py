@@ -1,3 +1,3 @@
 """Release version shared by the application and installers."""
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 REPOSITORY = "StellarStar255/stellar_mac_controller"

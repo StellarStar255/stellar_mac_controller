@@ -47,6 +47,7 @@ PANES = {"辅助功能": "x-apple.systempreferences:com.apple.preference.securit
 if sys.platform != "darwin":
     PANES = {}
 MINI_W, MINI_H = 360, 52
+COMPACT_SHORTCUT = "Ctrl+Shift+M"  # Qt maps Ctrl to Command on macOS.
 
 
 def app_settings():
@@ -635,6 +636,11 @@ class MainWindow(QMainWindow):
         self.resize(540, 780)
         self.setMinimumWidth(420)
         self.settings = app_settings()
+        # Previous releases enabled pinning by default. Reset that old default
+        # once; later explicit user choices remain persistent.
+        if not self.settings.value("window_behavior_v2", False, type=bool):
+            self.settings.setValue("pin", False)
+            self.settings.setValue("window_behavior_v2", True)
         self.bridge = Bridge()
         self.backend = None
         self.backend_key = None
@@ -752,7 +758,7 @@ class MainWindow(QMainWindow):
         self.composer.btn.clicked.connect(self.send_or_stop)
         self.status = QLabel(tr("就绪"))
         self.status.setObjectName("status")
-        shrink = QPushButton(tr("收起到角落 " + ("⌘M" if sys.platform == "darwin" else "Ctrl+M")))
+        shrink = QPushButton(tr("收起到角落 {shortcut}", shortcut=QKeySequence(COMPACT_SHORTCUT).toString(QKeySequence.SequenceFormat.NativeText)))
         shrink.setObjectName("link")
         shrink.setCursor(Qt.CursorShape.PointingHandCursor)
         shrink.setToolTip(tr("缩成屏幕右下角的小条，不挡页面（开着「台前调度」时系统最小化可能无效，用这个代替）"))
@@ -800,7 +806,7 @@ class MainWindow(QMainWindow):
         mini_wrap.addWidget(self.mini_panel)
         root.addLayout(mini_wrap)
         self.setCentralWidget(central)
-        self.compact_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
+        self.compact_shortcut = QShortcut(QKeySequence(COMPACT_SHORTCUT), self)
         self.compact_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         self.compact_shortcut.activated.connect(lambda: self.exit_mini() if self.mini else self.enter_mini())
 
@@ -828,7 +834,7 @@ class MainWindow(QMainWindow):
         self.delete_confirm_box.setChecked(self.settings.value("confirm_delete", False, type=bool))
         self.refocus_box.setChecked(self.settings.value("refocus", True, type=bool))
         self.mini_box.setChecked(self.settings.value("mini", True, type=bool))
-        self.pin_box.setChecked(self.settings.value("pin", True, type=bool))
+        self.pin_box.setChecked(self.settings.value("pin", False, type=bool))
         self.backend_box.currentTextChanged.connect(lambda _: self.fill_models())
         self.effort_box.currentIndexChanged.connect(lambda _: self.save_settings())
         self.pin_box.toggled.connect(self.apply_pin)

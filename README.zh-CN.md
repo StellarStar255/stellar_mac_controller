@@ -136,3 +136,7 @@ python3 packaging/sign_macos.py /path/to/unsigned/*-macos-*.dmg \
 脚本会签名所有原生组件，启用 Hardened Runtime，公证并附加应用票据，重新生成 DMG，再签名、公证、附加 DMG 票据并验证 Gatekeeper。Apple 拒绝公证时会停止。私钥保留在本机钥匙串中，不应提交或上传证书、密码。
 
 用最终签名 DMG 替换草稿文件，基于全部最终安装包重新运行 `python3 packaging/manifest.py <安装包目录>` 更新校验值，完成 Apple 芯片版启动测试后再发布。PKG 安装器签名还需独立的 Developer ID Installer 证书。
+
+### 窗口与快捷键
+
+窗口默认不置顶，升级会一次性关闭旧版本默认开启的置顶选项；以后仍可在设置中手动开启。窗口激活时，macOS 用 **⌘⇧M** 收起/展开，Windows/Linux 用 **Ctrl+Shift+M**。

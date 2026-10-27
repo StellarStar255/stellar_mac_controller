@@ -15,6 +15,8 @@ def schedule(application):
             window = application.main_window
             assert i18n.language() == 'en'
             assert window.confirm_box.text() == 'Confirm risky actions'
+            assert not window.pin_box.isChecked()
+            assert not window.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
             if __import__('sys').platform == 'darwin':
                 from AppKit import NSApplication, NSApplicationActivationPolicyRegular
                 assert NSApplication.sharedApplication().activationPolicy() == NSApplicationActivationPolicyRegular
@@ -56,7 +58,8 @@ def schedule(application):
             for expected in (True, False):
                 target = application.focusWidget() or window
                 for kind in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
-                    QApplication.sendEvent(target, QKeyEvent(kind, Qt.Key.Key_M, Qt.KeyboardModifier.ControlModifier, 'm'))
+                    QApplication.sendEvent(target, QKeyEvent(kind, Qt.Key.Key_M,
+                        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier, 'M'))
                 assert window.mini is expected, 'Compact-view shortcut failed'
             window.language_box.setCurrentIndex(window.language_box.findData('zh_CN'))
             assert tray.menu.actions()[0].text() == '打开主窗口'
@@ -65,6 +68,7 @@ def schedule(application):
             print('Bilingual GUI, stable backend/model keys, drafts and attachments: passed', flush=True)
             print('Application icon, tray menu, window restore and translated tray actions: passed', flush=True)
             print('Regular Dock application and compact-view shortcut: passed', flush=True)
+            print('Window stays-on-top disabled; Control/Command-Shift-M toggle: passed', flush=True)
             QTimer.singleShot(100, application.quit)
         except Exception:
             traceback.print_exc()

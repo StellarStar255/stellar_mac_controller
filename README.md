@@ -28,6 +28,10 @@ Open **Settings → Check for updates**. The app selects your platform's install
 
 A failed download or checksum check leaves the existing version available.
 
+### Window behavior
+
+The window is not kept on top by default. On upgrade, the old default is reset once; you can opt in under **Settings → Keep on top**. Toggle compact view with **Command-Shift-M** on macOS or **Ctrl-Shift-M** on Windows/Linux while the app is active.
+
 ### Language
 
 Choose **Settings → Language → English / 简体中文**. The selection is remembered. The interface switches immediately while keeping the current conversation, unsent draft and attachments. Finish or stop the current task before switching. Assistant replies follow the selected language; existing messages and your file names are not translated.
