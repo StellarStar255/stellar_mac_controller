@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+import plistlib
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +13,20 @@ spec.loader.exec_module(signing)
 
 
 class MacOSSigning(unittest.TestCase):
+    def test_console_bundle_becomes_a_regular_dock_application(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            app = Path(tmp)/'Example.app'
+            (app/'Contents').mkdir(parents=True)
+            path = app/'Contents/Info.plist'
+            original = {'LSBackgroundOnly':True, 'LSUIElement':True,
+                        'CFBundleIdentifier':'com.example.app', 'CFBundleShortVersionString':'0.3.1'}
+            path.write_bytes(plistlib.dumps(original))
+            signing.configure_gui_bundle(app)
+            info = plistlib.loads(path.read_bytes())
+            self.assertIs(info['LSBackgroundOnly'], False)
+            self.assertIs(info['LSUIElement'], False)
+            self.assertEqual(info['CFBundleIdentifier'], original['CFBundleIdentifier'])
+            self.assertEqual(info['CFBundleShortVersionString'], original['CFBundleShortVersionString'])
     def test_notarytool_zero_exit_with_invalid_status_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = subprocess.CompletedProcess([], 0, stdout=json.dumps({'status':'Invalid', 'id':'request-id'}))

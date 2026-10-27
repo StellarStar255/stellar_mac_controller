@@ -22,6 +22,9 @@ if mac:
     app = BUNDLE(coll, name='Mac Controller.app', icon=str(root / 'build/AppIcon.icns'),
                  bundle_identifier='com.stellar.maccontroller', version=__version__,
                  info_plist={'NSHighResolutionCapable': True,
+                             # Keep stdio for MCP, but launch the GUI as a regular Dock app.
+                             'LSBackgroundOnly': False,
+                             'LSUIElement': False,
                              'NSAppleEventsUsageDescription': '控制其它程序来完成用户交代的操作。',
                              'NSScreenCaptureUsageDescription': '查看屏幕以操作用户指定的程序。',
                              'LSMinimumSystemVersion': '12.0'})

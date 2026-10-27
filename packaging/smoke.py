@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import shutil
+import plistlib
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -67,6 +68,9 @@ with tempfile.TemporaryDirectory() as tmp:
         finally:
             subprocess.run(['hdiutil', 'detach', str(mount)], check=True)
         installed_exe = installed/'Contents/MacOS/MacController'
+        info = plistlib.loads((installed/'Contents/Info.plist').read_bytes())
+        assert not info.get('LSBackgroundOnly'), 'GUI must appear in Dock'
+        assert not info.get('LSUIElement'), 'GUI must appear in app switcher'
         subprocess.run(['codesign', '--verify', '--deep', '--strict', str(installed)], check=True)
         subprocess.run([str(installed_exe), '--smoke-test'], env=env, timeout=60, check=True)
         subprocess.run([str(installed_exe)], env=env, timeout=60, check=True)

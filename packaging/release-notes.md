@@ -1,3 +1,4 @@
+- Fixed macOS Dock visibility and Command-M window activation by removing the background-only app setting.
 - macOS now provides **DMG installers for Apple Silicon and Intel**: open the disk image and drag **Mac Controller.app** into **Applications**. PKG installers remain available for guided installation and in-app updates.
 - A dedicated application icon appears in the Dock/taskbar. Windows executables and Linux application launchers also include the icon.
 - Added a macOS menu bar / Windows and Linux system tray menu: **Open main window**, **Settings**, and **Quit**. Closing the window keeps the app running when a tray is available; choose Quit to exit.

@@ -800,7 +800,9 @@ class MainWindow(QMainWindow):
         mini_wrap.addWidget(self.mini_panel)
         root.addLayout(mini_wrap)
         self.setCentralWidget(central)
-        QShortcut(QKeySequence("Ctrl+M"), self, activated=lambda: self.exit_mini() if self.mini else self.enter_mini())
+        self.compact_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
+        self.compact_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self.compact_shortcut.activated.connect(lambda: self.exit_mini() if self.mini else self.enter_mini())
 
         self.setStyleSheet(stylesheet(self.theme))
         self.apply_icons()
@@ -1300,7 +1302,8 @@ def main():
     app.setApplicationName("Mac 控制台")
     app.setWindowIcon(QIcon(str(HERE / 'assets/app-icon.png')))
     if sys.platform == 'darwin':
-        from AppKit import NSApplication, NSImage
+        from AppKit import NSApplication, NSImage, NSApplicationActivationPolicyRegular
+        NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyRegular)
         image = NSImage.alloc().initWithContentsOfFile_(str(HERE / 'assets/app-icon.png'))
         NSApplication.sharedApplication().setApplicationIconImage_(image)
     settings = app_settings()

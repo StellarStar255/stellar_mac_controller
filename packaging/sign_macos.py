@@ -60,6 +60,16 @@ def sign_app(app, identity):
         raise RuntimeError('App does not have a hardened Developer ID signature')
 
 
+def configure_gui_bundle(app):
+    """Override PyInstaller's console-mode background default before signing."""
+    path = app/'Contents/Info.plist'
+    info = plistlib.loads(path.read_bytes())
+    info['LSBackgroundOnly'] = False
+    info['LSUIElement'] = False
+    path.write_bytes(plistlib.dumps(info))
+    return info
+
+
 def finalize(image, output, identity, profile, records):
     with tempfile.TemporaryDirectory(prefix='mac-controller-sign-') as tmp:
         root = Path(tmp)
@@ -72,7 +82,7 @@ def finalize(image, output, identity, profile, records):
             shutil.copytree(mount/app.name, app, symlinks=True)
         finally:
             run(['hdiutil', 'detach', mount])
-        info = plistlib.loads((app/'Contents/Info.plist').read_bytes())
+        info = configure_gui_bundle(app)
         version = info['CFBundleShortVersionString']
         if not image.name.startswith(f'MacController-{version}-macos-'):
             raise ValueError('DMG filename and app version differ')
