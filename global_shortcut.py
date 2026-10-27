@@ -80,7 +80,7 @@ class CarbonHotKey:
 
 
 class GlobalShortcut(QObject):
-    pressed = pyqtSignal()
+    pressed = pyqtSignal(bool)
 
     def __init__(self, application, tray):
         super().__init__(application)
@@ -98,7 +98,7 @@ class GlobalShortcut(QObject):
             self.close()
         elif not self.active:
             try:
-                self.native = CarbonHotKey(self.pressed.emit)
+                self.native = CarbonHotKey(self.native_pressed)
                 status = self.native.start()
                 if status:
                     self.error = str(status)
@@ -123,11 +123,24 @@ class GlobalShortcut(QObject):
             window.global_shortcut_box.setText(tr('全局快捷键 ⌘⇧M'))
             window.global_shortcut_box.setToolTip(tr('在其他程序中按 ⌘⇧M 呼出控制台；在控制台中按可收起或展开。'))
 
-    def activate(self):
+    def native_pressed(self):
+        # Preserve the key's foreground state before requesting app activation.
+        # Request activation in the native user event, before queued Qt delivery.
+        from AppKit import NSApplication
+        app = NSApplication.sharedApplication()
+        background = not app.isActive()
+        if background:
+            if app.respondsToSelector_('activate'):
+                app.activate()
+            else:
+                app.activateIgnoringOtherApps_(True)
+        self.pressed.emit(background)
+
+    def activate(self, background=False):
         if not self.active:
             return
         window = self.application.main_window
-        if not window.isVisible() or window.isMinimized() or not window.isActiveWindow():
+        if background or not window.isVisible() or window.isMinimized() or not window.isActiveWindow():
             self.tray.show_window()
         elif window.mini:
             window.exit_mini()

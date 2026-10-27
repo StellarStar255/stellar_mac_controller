@@ -1,6 +1,8 @@
 import ctypes as C
 import unittest
-from global_shortcut import CarbonHotKey, HotKeyID, SIGNATURE
+from unittest.mock import Mock, patch
+from types import SimpleNamespace
+from global_shortcut import CarbonHotKey, GlobalShortcut, SIGNATURE
 
 
 class Function:
@@ -42,6 +44,28 @@ class Carbon:
 
 
 class GlobalHotKeyTests(unittest.TestCase):
+    def test_native_event_remembers_background_before_app_activation(self):
+        app = Mock()
+        app.isActive.return_value = False
+        app.respondsToSelector_.return_value = True
+        controller = SimpleNamespace(pressed=Mock())
+        module = SimpleNamespace(NSApplication=SimpleNamespace(sharedApplication=lambda:app))
+        with patch.dict('sys.modules', {'AppKit':module}):
+            GlobalShortcut.native_pressed(controller)
+        app.activate.assert_called_once_with()
+        controller.pressed.emit.assert_called_once_with(True)
+
+    def test_queued_background_hotkey_summons_instead_of_toggling(self):
+        window = Mock()
+        window.isActiveWindow.return_value = True
+        window.isVisible.return_value = True
+        window.isMinimized.return_value = False
+        window.mini = False
+        controller = SimpleNamespace(active=True, application=SimpleNamespace(main_window=window), tray=Mock())
+        GlobalShortcut.activate(controller, background=True)
+        controller.tray.show_window.assert_called_once_with()
+        window.enter_mini.assert_not_called()
+
     def test_conflict_cleans_handler_without_claiming_the_key(self):
         library = Carbon(registration_status=-9878)
         hotkey = CarbonHotKey(lambda: None, library=library)

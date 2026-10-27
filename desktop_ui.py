@@ -47,6 +47,13 @@ class DesktopTray:
         window.exit_mini()
         window.showNormal()
         window.raise_()
+        if sys.platform == 'darwin':
+            from AppKit import NSApplication
+            native = NSApplication.sharedApplication()
+            if native.respondsToSelector_('activate'):
+                native.activate()
+            else:
+                native.activateIgnoringOtherApps_(True)
         window.activateWindow()
 
     def show_settings(self):
