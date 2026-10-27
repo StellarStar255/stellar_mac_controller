@@ -1,0 +1,42 @@
+# Local screenshots and generated macOS application (contains machine paths)
+.images/
+*.app/
+.DS_Store
+
+# Python environments and caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local credentials, agent configuration, and logs
+.env
+.env.*
+!.env.example
+.codex/
+.claude/
+.agents/
+.aws/
+auth.json
+credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+*.sqlite*
+*.db
+
+# Conversation history and attachments
+.chat.json
+.chat.json.tmp
+对话记录.md
+附件/

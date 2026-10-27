@@ -1,0 +1,6 @@
+PyQt6
+anthropic
+pillow
+pyobjc-framework-Cocoa
+pyobjc-framework-Quartz
+pyobjc-framework-ApplicationServices
