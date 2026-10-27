@@ -14,7 +14,8 @@ exe = ROOT / ('dist/Mac Controller.app/Contents/MacOS/MacController' if sys.plat
               else 'dist/MacController/MacController.exe' if sys.platform == 'win32'
               else 'dist/MacController/MacController')
 with tempfile.TemporaryDirectory() as tmp:
-    env = {**os.environ, 'MAC_CTRL_DATA_DIR': tmp, 'MAC_CTRL_WORKDIR': tmp, 'MACCTRL_GUI_SMOKE': '1'}
+    env = {**os.environ, 'MAC_CTRL_DATA_DIR': tmp, 'MAC_CTRL_WORKDIR': tmp, 'MACCTRL_GUI_SMOKE': '1',
+           'MAC_CTRL_LANGUAGE': 'en', 'MACCTRL_LANGUAGE_TEST': '1'}
     r = subprocess.run([str(exe), '--smoke-test'], capture_output=True, text=True, encoding='utf-8', env=env, timeout=60, check=True)
     assert json.loads(r.stdout)['version'] == __version__
     messages = [

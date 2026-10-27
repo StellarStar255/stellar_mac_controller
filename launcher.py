@@ -31,12 +31,15 @@ def main():
     elif "--confirm" in sys.argv:
         import json
         from PyQt6.QtWidgets import QApplication, QMessageBox
+        from i18n import tr
         data = json.load(sys.stdin)
         app = QApplication([])
-        answer = QMessageBox.question(None, "Mac Controller · " + data["title"], data["detail"],
-                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                                      QMessageBox.StandardButton.No)
-        sys.exit(0 if answer == QMessageBox.StandardButton.Yes else 1)
+        dialog = QMessageBox(QMessageBox.Icon.Question, "Mac Controller · " + data["title"], data["detail"])
+        allow = dialog.addButton(tr("允许"), QMessageBox.ButtonRole.AcceptRole)
+        deny = dialog.addButton(tr("拒绝"), QMessageBox.ButtonRole.RejectRole)
+        dialog.setDefaultButton(deny)
+        dialog.exec()
+        sys.exit(0 if dialog.clickedButton() is allow else 1)
     else:
         if sys.platform == "win32":
             import ctypes

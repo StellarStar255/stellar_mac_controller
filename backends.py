@@ -16,6 +16,7 @@ import time
 import tomllib
 from pathlib import Path
 from runtime_support import external_env
+from i18n import language
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -126,7 +127,7 @@ SYSTEM_PROMPT = """你是运行在用户 Mac 上的操作助手，通过工具�
 - 不要向密码框输入内容，需要密码时请用户自己输入。
 - 连续失败两次就换一种方法；实在做不到就说明原因。
 - 权限或授权被拒绝时立即停止访问该应用，不得换工具绕过。报错包含“Computer Use was not approved to use”时，表示 Computer Use 未获目标应用的访问授权；不能据此说成 macOS 系统权限缺失或用户未登录。说明目标应用及原始报错，并请用户在桌面客户端的 Computer Use 设置中检查应用授权，再重试。
-- 用简体中文简洁地回答，完成后用一两句话说明做了什么、结果如何。"""
+- 按消息开头指定的回复语言简洁地回答；未指定时跟随用户使用的语言。完成后用一两句话说明做了什么、结果如何。"""
 
 if sys.platform != "darwin":
     SYSTEM_PROMPT = (SYSTEM_PROMPT.replace("Mac", "电脑") +
@@ -174,7 +175,8 @@ def context_note(front_app, workdir=None):
         note += f"；用户发消息前正在使用的程序：{front_app}"
     if workdir:
         note += f"；本对话的工作文件夹：{workdir}"
-    return note + "]\n"
+    response_language = "English" if language() == "en" else "简体中文"
+    return f"[Response language: {response_language}]\n" + note + "]\n"
 
 
 # ---------------------------------------------------------------- 本机 Claude Code
@@ -242,6 +244,7 @@ class ClaudeCodeBackend:
         return json.dumps({"mcpServers": {"mac": {
             "command": executable, "args": args,
             "env": {"MAC_CTRL_SELF_PID": str(self.self_pid), "MAC_CTRL_CONFIRM": "1" if self.confirm else "0",
+                    "MAC_CTRL_LANGUAGE": language(),
                     "MAC_CTRL_CONFIRM_DELETE": "1" if self.confirm_delete else "0",
                     "MAC_CTRL_WORKDIR": self.workdir, "PYTHONPATH": str(HERE)}}}})
 
@@ -386,6 +389,7 @@ class CodexBackend(ClaudeCodeBackend):
             "command": executable,
             "args": args,
             "env": {"MAC_CTRL_SELF_PID": str(self.self_pid),
+                                    "MAC_CTRL_LANGUAGE": language(),
                                     "MAC_CTRL_CONFIRM": "1" if self.confirm else "0",
                                     "MAC_CTRL_CONFIRM_DELETE": "1" if self.confirm_delete else "0",
                                     "MAC_CTRL_WORKDIR": self.workdir, "PYTHONPATH": str(HERE)},

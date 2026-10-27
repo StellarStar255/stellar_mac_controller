@@ -17,6 +17,7 @@ import time
 import desktop_common as common
 from desktop_common import ToolError, _schema, XY, risk_reasons
 from runtime_support import external_env
+from i18n import tr, language
 
 CONFIRM = os.environ.get("MAC_CTRL_CONFIRM", "1") == "1"
 CONFIRM_DELETE = os.environ.get("MAC_CTRL_CONFIRM_DELETE", "0") == "1"
@@ -41,7 +42,7 @@ def confirm(title, detail):
         return
     args = [sys.executable] + (["--confirm"] if getattr(sys, "frozen", False)
                               else [str(Path(__file__).with_name("launcher.py")), "--confirm"])
-    result = subprocess.run(args, input=json.dumps({"title": title, "detail": detail[:1500]}),
+    result = subprocess.run(args, input=json.dumps({"title": tr(title), "detail": tr(detail[:1500])}),
                             text=True, capture_output=True, timeout=600)
     if result.returncode:
         raise ToolError("用户拒绝了这个操作，请停止。")
@@ -60,6 +61,11 @@ def permissions():
 
 
 def permission_hint(missing):
+    if language() == "en":
+        return ("Keep the Windows desktop unlocked. A normal process cannot control administrator windows."
+                if sys.platform == "win32" else
+                "Desktop control requires an unlocked X11 session. Wayland is not supported yet. "
+                "Choose Xorg/X11 at login. Commands and notes remain available.")
     return ("Windows 请保持桌面解锁；普通权限进程不能操作以管理员身份运行的窗口。" if sys.platform == "win32"
             else "Linux 电脑操作需要已解锁的 X11 桌面；Wayland 暂不支持。请在登录界面选择 Xorg/X11 会话。命令和笔记仍可使用。")
 

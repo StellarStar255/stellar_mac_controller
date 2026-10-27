@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import backends
+from i18n import tr
 if sys.platform == "darwin":
     import Quartz
     with patch.object(Quartz, "CGDisplayBounds", return_value=SimpleNamespace(
@@ -214,7 +215,7 @@ print(json.dumps({"type": "turn.completed", "usage": {}}), flush=True)
             mac_tools.confirm_if_risky("命令", "rm -rf '/tmp/示例文件'", shell=True)
             confirm.assert_not_called()
             mac_tools.confirm_if_risky("命令", "sudo rm /tmp/example", shell=True)
-            self.assertIn("管理员权限", confirm.call_args.args[1])
+            self.assertIn(tr("管理员权限"), confirm.call_args.args[1])
             confirm.reset_mock()
             mac_tools.confirm_if_risky("脚本", 'tell application "Finder" to empty trash', shell=False)
             confirm.assert_called_once()

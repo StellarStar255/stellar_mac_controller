@@ -16,6 +16,7 @@ import subprocess
 import time
 from contextlib import contextmanager
 from pathlib import Path
+from i18n import tr, language
 
 import ApplicationServices as AX
 import Quartz
@@ -116,7 +117,9 @@ def confirm_if_risky(title, text, shell):
     if not CONFIRM_DELETE:
         reasons = [why for why in reasons if why not in {"删除文件", "批量删除文件", "同步时删除文件", "删除内容"}]
     if reasons:
-        confirm(title, f"检测到：{'、'.join(reasons)}\n\n{text}")
+        detail = ("Detected: " + ", ".join(tr(reason) for reason in reasons) if language() == "en"
+                  else "检测到：" + "、".join(reasons))
+        confirm(title, f"{detail}\n\n{text}")
 
 
 def confirm(title, detail):
@@ -124,8 +127,10 @@ def confirm(title, detail):
     if not CONFIRM:
         return
     detail = detail if len(detail) < 1500 else detail[:1500] + "\n…"
-    script = (f"display dialog {_as_str(detail)} with title {_as_str('Mac 控制台 · ' + title)} "
-              f'buttons {{"拒绝", "允许"}} default button "允许" cancel button "拒绝" with icon caution')
+    allow, deny = _as_str(tr("允许")), _as_str(tr("拒绝"))
+    script = (f"display dialog {_as_str(tr(detail))} with title {_as_str(tr('Mac 控制台') + ' · ' + tr(title))} "
+              + "buttons {" + deny + ", " + allow + "} "
+              + f"default button {allow} cancel button {deny} with icon caution")
     p = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=600)
     if p.returncode != 0:
         raise ToolError("用户拒绝了这个操作。请停下来问用户接下来怎么做。")
@@ -163,6 +168,13 @@ def responsible_app():
 def permission_hint(missing):
     """缺权限时给用户的说明：点名要授权的 App，并讲清两个常见坑。"""
     who = responsible_app()
+    if language() == "en":
+        target = who or "the terminal or application that launched Mac Controller"
+        permissions = ", ".join(tr(name) for name in missing)
+        return (f"Enable {permissions} for {target} in System Settings → Privacy & Security. "
+                f"After changing Screen Recording, fully quit and reopen {target}. "
+                "If permission is enabled but does not work, remove and re-add the app in that list. "
+                "Commands and AppleScript may still work without desktop permissions.")
     target = f"「{who}」" if who else "启动本程序的终端（或 Python）"
     restart = f"完全退出并重新打开 {who}" if who else "完全退出并重新打开那个终端"
     parts = [f"缺少「{'」「'.join(missing)}」权限：请在 系统设置 → 隐私与安全性 里给{target}打开开关。"]

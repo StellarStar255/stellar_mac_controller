@@ -4,6 +4,7 @@ import re
 import subprocess
 import time
 from pathlib import Path
+from i18n import tr, language
 
 CONFIRM = os.environ.get("MAC_CTRL_CONFIRM", "1") == "1"
 CONFIRM_DELETE = os.environ.get("MAC_CTRL_CONFIRM_DELETE", "0") == "1"
@@ -62,7 +63,9 @@ def confirm_if_risky(title, text, shell):
     if not CONFIRM_DELETE:
         reasons = [why for why in reasons if why not in {"删除文件", "批量删除文件", "同步时删除文件", "删除内容"}]
     if reasons:
-        confirm(title, f"检测到：{'、'.join(reasons)}\n\n{text}")
+        detail = ("Detected: " + ", ".join(tr(reason) for reason in reasons) if language() == "en"
+                  else "检测到：" + "、".join(reasons))
+        confirm(title, f"{detail}\n\n{text}")
 
 def workdir():
     d = Path(WORKDIR) if WORKDIR else Path.home() / "Documents" / "Mac 控制台" / "未归档"
