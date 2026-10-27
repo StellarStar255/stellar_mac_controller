@@ -87,7 +87,7 @@ def finalize(image, output, identity, profile, records):
         if not image.name.startswith(f'MacController-{version}-macos-'):
             raise ValueError('DMG filename and app version differ')
         sign_app(app, identity)
-        archive = root/'MacController.app.zip'
+        archive = root/f'{image.stem}.app.zip'
         run(['ditto', '-c', '-k', '--keepParent', app, archive])
         notarize(archive, profile, records)
         run(['xcrun', 'stapler', 'staple', app])
