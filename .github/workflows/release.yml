@@ -65,7 +65,9 @@ jobs:
           path: release
           merge-multiple: true
       - run: python packaging/manifest.py release
-      - name: Publish installers, checksums and update manifest
+      # Developer ID keys stay in the maintainer's local keychain. Finalize the
+      # two DMGs with packaging/sign_macos.py before publishing this draft.
+      - name: Stage draft installers, checksums and update manifest
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/* --title "Mac Controller $GITHUB_REF_NAME" --notes-file packaging/release-notes.md --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" release/* --draft --title "Mac Controller $GITHUB_REF_NAME" --notes-file packaging/release-notes.md --verify-tag

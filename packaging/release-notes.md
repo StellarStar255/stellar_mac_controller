@@ -5,6 +5,6 @@
 
 For manual DMG updates, quit the running app before replacing it. Linux desktop control requires X11. Local CLI backends require a separately installed and signed-in Claude Code or Codex CLI.
 
-Installers are not Apple Developer / Authenticode signed, and macOS artifacts are not notarized. System installation and permission confirmations may be required.
+The macOS **DMGs and their apps are Developer ID signed, Apple notarized, and stapled**. Download the `macos-arm64.dmg` for Apple Silicon, including M5. Legacy PKG installers are not Developer ID Installer signed; use the DMG for the signed macOS download. Windows installers are not Authenticode signed. Normal system permission confirmations may still be required.
 
 [English documentation](https://github.com/StellarStar255/stellar_mac_controller#readme) · [中文说明](https://github.com/StellarStar255/stellar_mac_controller/blob/main/README.zh-CN.md)

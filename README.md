@@ -20,7 +20,7 @@ macOS also provides `.pkg` installers for guided installation and in-app updates
 
 The application has its own Dock/taskbar icon and a menu bar/system tray icon. Use the tray menu to open the window, open Settings or Quit. Closing the window keeps the app running when the tray is available; choose **Quit** to exit. On Linux desktops without a system tray, closing the window exits the app.
 
-Installers do not currently have Apple Developer / Windows Authenticode distribution signatures. The macOS package is not notarized. Your operating system may require an installation confirmation. Published SHA-256 checksums verify download integrity; they are not publisher signatures.
+The finalized macOS DMGs and their apps are signed with Developer ID, notarized by Apple, and include stapled notarization tickets. macOS may still request normal first-launch, Accessibility, Screen Recording and Automation permissions. The legacy `.pkg` installer is not Developer ID Installer signed; use the DMG for the signed macOS download. Windows installers do not currently have Authenticode signatures. Published SHA-256 checksums verify download integrity.
 
 ### Updates
 
@@ -112,3 +112,18 @@ Windows also requires Inno Setup 6. Linux builds require `dpkg-deb`; run GUI smo
 The version is defined in `version.py`. Push a matching `vX.Y.Z` tag to build on native Mac ARM, Mac Intel, Windows x64 and Linux x64 runners. GitHub Actions publishes the installers, `SHA256SUMS` and `update-manifest.json` only after all builds and smoke tests pass. A manual workflow run performs build validation without publishing.
 
 Main files: `app.py` (interface), `i18n.py` (translations), `backends.py` (AI backends), `mac_tools.py` / `desktop_tools.py` (computer tools), `mcp_server.py` (stdio MCP), `chat_store.py` (conversations), `updater.py` (verified downloads), and `packaging/` (installers and smoke tests).
+
+### Finalize macOS distribution signing
+
+Tag builds stage a **draft release**. Before publishing it, download both macOS DMGs and finalize them on a Mac with a Developer ID Application certificate and a configured `notarytool` keychain profile:
+
+```sh
+python3 packaging/sign_macos.py /path/to/unsigned/*-macos-*.dmg \
+  --output /path/to/signed \
+  --identity "Developer ID Application: Your Name (TEAMID)" \
+  --profile stellar-notary
+```
+
+This signs every nested native component with hardened runtime, notarizes and staples the app, rebuilds and signs the DMG, then notarizes, staples and verifies the DMG with Gatekeeper. A rejected Apple submission stops the command. Private keys remain in the local keychain; do not commit or upload certificates or credentials.
+
+Replace the draft's DMGs with the finalized images, regenerate `SHA256SUMS` and `update-manifest.json` from all final assets using `python3 packaging/manifest.py <asset-directory>`, and publish only after testing the signed Apple Silicon app. PKG installer signing additionally requires a separate Developer ID Installer certificate.
