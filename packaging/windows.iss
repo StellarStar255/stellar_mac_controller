@@ -28,5 +28,7 @@ Source: "..\dist\MacController\*"; DestDir: "{app}"; Flags: ignoreversion recurs
 [Icons]
 Name: "{group}\Mac Controller"; Filename: "{app}\MacController.exe"
 Name: "{autodesktop}\Mac Controller"; Filename: "{app}\MacController.exe"
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\_internal"
 [Run]
 Filename: "{app}\MacController.exe"; Description: "启动 Mac Controller"; Flags: nowait postinstall skipifsilent

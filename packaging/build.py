@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 import platform
+import plistlib
 import shutil
 import subprocess
 import sys
@@ -31,9 +32,17 @@ def main():
         pkgroot = ROOT / 'build/pkgroot'
         pkgroot.mkdir(exist_ok=True)
         shutil.copytree(app, pkgroot / app.name, symlinks=True, dirs_exist_ok=True)
+        components = ROOT / 'build/components.plist'
+        run(['pkgbuild', '--analyze', '--root', pkgroot, components])
+        entries = plistlib.loads(components.read_bytes())
+        for entry in entries:
+            entry['BundleIsRelocatable'] = False
+            entry['BundleOverwriteAction'] = 'upgrade'
+        components.write_bytes(plistlib.dumps(entries))
         package = output / f'MacController-{__version__}-{platform_key()}.pkg'
         run(['pkgbuild', '--root', pkgroot, '--identifier', 'com.stellar.maccontroller',
-             '--version', __version__, '--install-location', '/Applications', package])
+             '--version', __version__, '--component-plist', components,
+             '--install-location', '/Applications', package])
     elif sys.platform == 'win32':
         compiler = shutil.which('ISCC') or r'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
         run([compiler, f'/DAppVersion={__version__}', ROOT / 'packaging/windows.iss'])

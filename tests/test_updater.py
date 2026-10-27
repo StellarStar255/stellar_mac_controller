@@ -1,5 +1,8 @@
 import hashlib
 import io
+import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,6 +14,26 @@ import runtime_support
 
 
 class Updates(unittest.TestCase):
+    def test_actual_release_manifest_selects_the_correct_installer(self):
+        from version import __version__
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            suffixes = ['macos-arm64.pkg', 'macos-x64.pkg', 'windows-x64-setup.exe',
+                        'linux-x64.deb', 'linux-x64.run']
+            for suffix in suffixes:
+                (root / f'MacController-{__version__}-{suffix}').write_bytes(b'package')
+            subprocess.run([sys.executable,str(Path(__file__).resolve().parents[1]/'packaging/manifest.py'),tmp],check=True)
+            manifest = json.loads((root/'update-manifest.json').read_text())
+            tag = 'v'+__version__
+            release = {'tag_name':tag,'assets':[{'name':'update-manifest.json',
+                        'browser_download_url':f'{updater.RELEASES}/download/{tag}/update-manifest.json'}]}
+            for system,key,suffix in [('darwin','macos-arm64','.pkg'),('darwin','macos-x64','.pkg'),
+                                      ('win32','windows-x64','.exe'),('linux','linux-x64','.deb')]:
+                with patch('updater._json',side_effect=[release,manifest]), patch('updater.platform_key',return_value=key), patch.object(updater.sys,'platform',system):
+                    entry=updater.check_update(current='0.1.0')
+                self.assertTrue(entry['name'].endswith(suffix))
+                self.assertEqual(entry['size'],7)
+
     def test_system_commands_do_not_inherit_bundled_libraries(self):
         with patch.object(runtime_support.sys, 'frozen', True, create=True), patch.dict(
                 runtime_support.os.environ, {'LD_LIBRARY_PATH':'/bundle', 'LD_LIBRARY_PATH_ORIG':'/system'}):
