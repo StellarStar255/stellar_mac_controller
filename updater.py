@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from version import REPOSITORY, __version__
+from runtime_support import external_env
 
 API = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
 RELEASES = f"https://github.com/{REPOSITORY}/releases"
@@ -74,7 +75,7 @@ def check_update(current=__version__):
         raise ValueError("此版本暂时没有适合本机架构的安装包。")
     entry = dict(entry)
     expected_suffix = {"darwin": ".pkg", "win32": ".exe", "linux": ".deb"}[sys.platform]
-    if sys.platform == "linux" and ".local" in str(Path(sys.executable)):
+    if sys.platform == "linux" and Path(sys.executable).with_name(".user-install").is_file():
         entry = dict(manifest["platforms"].get(platform_key() + "-portable", entry))
         entry["url"] = _asset_url(entry["url"], tag)
         expected_suffix = ".run"
@@ -113,11 +114,11 @@ def download_update(entry):
 def launch_installer(path):
     path = Path(path).resolve()
     if sys.platform == "darwin":
-        subprocess.Popen(["open", str(path)])
+        subprocess.Popen(["open", str(path)], env=external_env())
     elif sys.platform == "win32":
-        subprocess.Popen([str(path), "/SILENT", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"])
+        subprocess.Popen([str(path), "/SILENT", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"], env=external_env())
     else:
         if path.suffix == ".deb":
-            subprocess.Popen(["xdg-open", str(path)], start_new_session=True)
+            subprocess.Popen(["xdg-open", str(path)], start_new_session=True, env=external_env())
         else:
-            subprocess.Popen(["sh", str(path), "--update"], start_new_session=True)
+            subprocess.Popen(["sh", str(path), "--update"], start_new_session=True, env=external_env())

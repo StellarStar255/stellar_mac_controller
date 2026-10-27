@@ -15,7 +15,7 @@ exe = ROOT / ('dist/Mac Controller.app/Contents/MacOS/MacController' if sys.plat
               else 'dist/MacController/MacController')
 with tempfile.TemporaryDirectory() as tmp:
     env = {**os.environ, 'MAC_CTRL_DATA_DIR': tmp, 'MAC_CTRL_WORKDIR': tmp, 'MACCTRL_GUI_SMOKE': '1'}
-    r = subprocess.run([str(exe), '--smoke-test'], capture_output=True, text=True, env=env, timeout=60, check=True)
+    r = subprocess.run([str(exe), '--smoke-test'], capture_output=True, text=True, encoding='utf-8', env=env, timeout=60, check=True)
     assert json.loads(r.stdout)['version'] == __version__
     messages = [
         {'jsonrpc':'2.0','id':1,'method':'initialize','params':{}},
@@ -24,12 +24,17 @@ with tempfile.TemporaryDirectory() as tmp:
         {'jsonrpc':'2.0','id':4,'method':'tools/call','params':{'name':'note_read','arguments':{'name':'smoke'}}},
     ]
     r = subprocess.run([str(exe), '--mcp'], input='\n'.join(map(json.dumps,messages))+'\n', capture_output=True,
-                       text=True, env=env, timeout=60, check=True)
+                       text=True, encoding='utf-8', env=env, timeout=60, check=True)
     replies = [json.loads(line) for line in r.stdout.splitlines()]
     assert len(replies) == 4, r.stdout
+    assert 'result' in replies[1], replies
     assert replies[1]['result']['tools']
     assert not replies[2]['result']['isError']
     assert 'ok' in replies[3]['result']['content'][0]['text']
+    if sys.platform == 'linux':
+        for library in (ROOT/'dist').rglob('libqxcb.so'):
+            dependencies = subprocess.check_output(['ldd',str(library)],text=True)
+            assert 'not found' not in dependencies, dependencies
     subprocess.run([str(exe)], env=env, timeout=60, check=True)
     if sys.platform == 'linux':
         deb = next((ROOT/'release').glob('*.deb'))

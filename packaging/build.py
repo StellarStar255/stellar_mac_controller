@@ -62,7 +62,9 @@ def main():
             f'Package: stellar-mac-controller\nVersion: {__version__}\nArchitecture: amd64\n'
             'Maintainer: StellarStar255 <StellarStar255@users.noreply.github.com>\n'
             'Depends: libegl1, libopengl0, libxcb-cursor0, libxkbcommon-x11-0, libxcb-icccm4, '
-            'libxcb-image0, libxcb-keysyms1, libxcb-render-util0, libxcb-xinerama0, xclip, wmctrl, xdotool\n'
+            'libxcb-image0, libxcb-keysyms1, libxcb-render-util0, libxcb-xinerama0, libxcb-shape0, '
+            'libxcb-xfixes0, libxcb-sync1, libxcb-randr0, libxcb-xkb1, libxcb-util1, libx11-xcb1, '
+            'libxrender1, libxi6, libsm6, libice6, xclip, wmctrl, xdotool\n'
             'Description: Desktop AI assistant with local computer tools\n')
         run(['dpkg-deb', '--root-owner-group', '--build', debroot,
              output / f'MacController-{__version__}-{platform_key()}.deb'])

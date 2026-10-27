@@ -12,6 +12,11 @@ def main():
     elif sys.platform == "win32":
         extra += [Path(os.environ.get("APPDATA", str(Path.home()))) / "npm"]
     os.environ["PATH"] = os.pathsep.join([os.environ.get("PATH", ""), *(str(p) for p in extra)])
+    if sys.platform == "darwin" and not (os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")):
+        from urllib.request import getproxies
+        for protocol, proxy in getproxies().items():
+            if protocol in {"http", "https"}:
+                os.environ.setdefault(protocol + "_proxy", proxy)
     if "--mcp" in sys.argv:
         import mcp_server
         mcp_server.main()

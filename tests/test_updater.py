@@ -7,9 +7,16 @@ from unittest.mock import patch
 
 import updater
 import backends
+import runtime_support
 
 
 class Updates(unittest.TestCase):
+    def test_system_commands_do_not_inherit_bundled_libraries(self):
+        with patch.object(runtime_support.sys, 'frozen', True, create=True), patch.dict(
+                runtime_support.os.environ, {'LD_LIBRARY_PATH':'/bundle', 'LD_LIBRARY_PATH_ORIG':'/system'}):
+            self.assertEqual(runtime_support.external_env()['LD_LIBRARY_PATH'], '/system')
+            self.assertEqual(runtime_support.os.environ['LD_LIBRARY_PATH'], '/bundle')
+
     def test_numeric_versions_and_supported_architectures(self):
         self.assertGreater(updater.version_tuple('v0.10.0'), updater.version_tuple('0.2.0'))
         for os_name, cpu, key in [('darwin','arm64','macos-arm64'),('darwin','x86_64','macos-x64'),

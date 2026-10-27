@@ -9,6 +9,7 @@ trap 'rm -rf "$stage"' EXIT HUP INT TERM
 line=$(awk '/^__ARCHIVE_BELOW__$/ { print NR + 1; exit }' "$0")
 tail -n +"$line" "$0" | tar xz -C "$stage"
 test -x "$stage/MacController/MacController"
+touch "$stage/MacController/.user-install"
 # Rename existing code out of the way; conversation data lives elsewhere.
 backup="$base/.mac-controller-backup-$$"
 if [ -e "$root" ]; then mv "$root" "$backup"; fi

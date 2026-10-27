@@ -16,6 +16,7 @@ import time
 
 import desktop_common as common
 from desktop_common import ToolError, _schema, XY, risk_reasons
+from runtime_support import external_env
 
 CONFIRM = os.environ.get("MAC_CTRL_CONFIRM", "1") == "1"
 CONFIRM_DELETE = os.environ.get("MAC_CTRL_CONFIRM_DELETE", "0") == "1"
@@ -111,7 +112,7 @@ def t_list_apps(include_installed=False):
 
 def t_open(target, app=None):
     if app:
-        subprocess.Popen([app, target])
+        subprocess.Popen([app, target], env=external_env())
     elif re.match(r"https?://", target):
         import webbrowser
         webbrowser.open(target)
@@ -120,9 +121,9 @@ def t_open(target, app=None):
         if sys.platform == "win32":
             os.startfile(path)
         else:
-            subprocess.Popen(["xdg-open", path])
+            subprocess.Popen(["xdg-open", path], env=external_env())
     else:
-        subprocess.Popen([target])
+        subprocess.Popen([target], env=external_env())
     return "已打开：" + target
 
 
@@ -152,7 +153,7 @@ def t_run_shell(command, timeout=120):
     confirm_if_risky("运行命令", command, shell=True)
     _sync()
     p = subprocess.run(command, shell=True, capture_output=True, text=True,
-                       timeout=min(max(int(timeout), 1), 600), cwd=str(common.workdir()))
+                       timeout=min(max(int(timeout), 1), 600), cwd=str(common.workdir()), env=external_env())
     return f"退出码 {p.returncode}\n{(p.stdout + p.stderr)[:12000]}"
 
 
@@ -174,7 +175,7 @@ def t_read_ui(app=None, max_elements=200, include_menu_bar=False):
             eid = len(_ELEMENTS) + 1
             _ELEMENTS[eid] = control
             name = "[密码框]" if control.element_info.control_type == "Edit" and control.element_info.element.CurrentIsPassword else control.window_text()
-            lines.append(f"[{eid}] {control.element_info.control_type} {name[:100]} @({rect.mid_point().x},{rect.mid_point().y})")
+            lines.append(f"[{eid}] {control.element_info.control_type} {name[:100]} @({round(rect.mid_point().x*_SCALE)},{round(rect.mid_point().y*_SCALE)})")
         except Exception:
             continue
     return "\n".join(lines) or "没有读到界面元素，请使用 screenshot。"

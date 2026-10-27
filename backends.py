@@ -15,6 +15,7 @@ import threading
 import time
 import tomllib
 from pathlib import Path
+from runtime_support import external_env
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -255,10 +256,10 @@ class ClaudeCodeBackend:
             cmd += ["--model", self.model]
         if self.session_id:
             cmd += ["--resume", self.session_id]
-        env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}   # 走 Claude Code 的登录账号
+        env = {k: v for k, v in external_env().items() if k != "ANTHROPIC_API_KEY"}   # 走 Claude Code 的登录账号
         try:
             self.proc = subprocess.Popen(cmd, cwd=str(Path.home()), env=env, stdin=subprocess.PIPE,
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1,
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", bufsize=1,
                                          start_new_session=True)
         except FileNotFoundError:
             self.bridge.error.emit(f"找不到 claude 命令（{CLAUDE}），请先安装并登录 Claude Code。")
@@ -467,13 +468,14 @@ class CodexBackend(ClaudeCodeBackend):
                     prompt, self.workdir, files = self.pending.pop(0)
                     self._access_denial = None
                 # stderr 写临时文件，避免长日志堵塞管道；从不把 prompt 放进命令行。
-                with tempfile.TemporaryFile(mode="w+") as errors:
+                with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as errors:
                     with self._lock:
                         if self._stopped:
                             return
                         proc = subprocess.Popen(self._command(files), cwd=self.workdir or str(Path.home()),
+                                                env=external_env(),
                                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errors,
-                                                text=True, bufsize=1, start_new_session=True)
+                                                text=True, encoding="utf-8", bufsize=1, start_new_session=True)
                         self.proc = proc
                     if self.model:
                         self.bridge.model.emit(self.model)
