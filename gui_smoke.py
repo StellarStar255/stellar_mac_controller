@@ -17,6 +17,12 @@ def schedule(application):
             assert window.confirm_box.text() == 'Confirm risky actions'
             assert not window.pin_box.isChecked()
             assert not window.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
+            controller = getattr(application, 'global_shortcut', None)
+            global_was_active = bool(controller and controller.active)
+            if controller:
+                assert window.global_shortcut_box.isChecked()
+                window.global_shortcut_box.setChecked(False)
+                assert not controller.active and window.compact_shortcut.isEnabled()
             if __import__('sys').platform == 'darwin':
                 from AppKit import NSApplication, NSApplicationActivationPolicyRegular
                 assert NSApplication.sharedApplication().activationPolicy() == NSApplicationActivationPolicyRegular
@@ -65,10 +71,16 @@ def schedule(application):
             assert tray.menu.actions()[0].text() == '打开主窗口'
             window = application.main_window
             window.language_box.setCurrentIndex(window.language_box.findData('en'))
+            if controller:
+                window = application.main_window
+                window.global_shortcut_box.setChecked(True)
+                if global_was_active:
+                    assert controller.active and not window.compact_shortcut.isEnabled()
             print('Bilingual GUI, stable backend/model keys, drafts and attachments: passed', flush=True)
             print('Application icon, tray menu, window restore and translated tray actions: passed', flush=True)
             print('Regular Dock application and compact-view shortcut: passed', flush=True)
             print('Window stays-on-top disabled; Control/Command-Shift-M toggle: passed', flush=True)
+            print('Global shortcut preference, language rebuild and local fallback: passed', flush=True)
             QTimer.singleShot(100, application.quit)
         except Exception:
             traceback.print_exc()

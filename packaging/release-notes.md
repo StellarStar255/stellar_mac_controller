@@ -1,3 +1,4 @@
+- macOS **Command-Shift-M is global by default**: summon the controller from another app or from the tray; toggle compact view while the controller is active. Turn it off in Settings to use a window-only shortcut. Conflicts fall back to the local shortcut.
 - Compact view now uses **Command-Shift-M** on macOS and **Ctrl-Shift-M** on Windows/Linux. The button displays the current shortcut.
 - **Keep on top is off by default.** Upgrading resets the previous default once; later explicit choices are remembered.
 - Fixed macOS Dock visibility and Command-M window activation by removing the background-only app setting.

@@ -30,7 +30,7 @@ A failed download or checksum check leaves the existing version available.
 
 ### Window behavior
 
-The window is not kept on top by default. On upgrade, the old default is reset once; you can opt in under **Settings → Keep on top**. Toggle compact view with **Command-Shift-M** on macOS or **Ctrl-Shift-M** on Windows/Linux while the app is active.
+The window is not kept on top by default. On upgrade, the old default is reset once; you can opt in under **Settings → Keep on top**. On macOS, **Command-Shift-M is global by default**: use it in another app to bring the controller forward, or inside the controller to toggle compact view. It also restores a window closed to the tray. Disable it under **Settings → Global shortcut** to keep it local to the window. If another app has registered the shortcut, the setting reports it as unavailable and the local shortcut remains usable. Windows/Linux use **Ctrl-Shift-M** while the controller is active.
 
 ### Language
 

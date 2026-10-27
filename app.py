@@ -714,11 +714,16 @@ class MainWindow(QMainWindow):
         self.mini_box = QCheckBox(tr("执行时收成小条"))
         self.mini_box.setToolTip(tr("任务执行期间窗口缩到屏幕右下角，不挡住要操作的页面；做完自动恢复"))
         self.pin_box = QCheckBox(tr("窗口置顶"))
+        self.global_shortcut_box = QCheckBox(tr("全局快捷键 ⌘⇧M"))
+        self.global_shortcut_box.setChecked(self.settings.value("global_compact_shortcut", True, type=bool))
+        self.global_shortcut_box.setVisible(sys.platform == 'darwin')
+        self.global_shortcut_box.toggled.connect(self.change_global_shortcut)
         opts = QGridLayout()
         opts.setHorizontalSpacing(18)
         opts.setVerticalSpacing(6)
         for i, w in enumerate((self.confirm_box, self.delete_confirm_box, self.refocus_box, self.mini_box, self.pin_box)):
             opts.addWidget(w, i // 2, i % 2)
+        opts.addWidget(self.global_shortcut_box, 2, 1)
         g.addLayout(opts, 4, 0, 1, 3)
         from update_ui import UpdateController
         self.updater = UpdateController(self)
@@ -888,6 +893,8 @@ class MainWindow(QMainWindow):
         replacement.composer.add_files(files)
         replacement.gear_btn.setChecked(True)
         QApplication.instance().main_window = replacement
+        if shortcut := getattr(QApplication.instance(), 'global_shortcut', None):
+            shortcut.sync_window()
         if tray := getattr(QApplication.instance(), 'desktop_tray', None):
             tray.refresh()
         replacement.show()
@@ -1091,6 +1098,11 @@ class MainWindow(QMainWindow):
             if resumed:
                 self.add("meta", "已打开上次的对话，可以直接接着说；换话题点右上角 ＋。", save=False)
         self.refresh_history()
+
+    def change_global_shortcut(self, enabled):
+        self.settings.setValue('global_compact_shortcut', enabled)
+        if shortcut := getattr(QApplication.instance(), 'global_shortcut', None):
+            shortcut.set_enabled(enabled)
 
     def on_history(self, index):
         chat = self.history_box.itemData(index)
@@ -1323,6 +1335,9 @@ def main():
     from desktop_ui import DesktopTray
     app.desktop_tray = DesktopTray(app)
     app.aboutToQuit.connect(app.desktop_tray.cleanup)
+    if sys.platform == 'darwin':
+        from global_shortcut import GlobalShortcut
+        app.global_shortcut = GlobalShortcut(app, app.desktop_tray)
     w.show()
     if os.environ.get("MACCTRL_GUI_SMOKE"):
         w.gear_btn.setChecked(True)

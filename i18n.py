@@ -4,6 +4,10 @@ import re
 
 _LANGUAGE = 'en'
 CATALOG = {
+    '全局快捷键 ⌘⇧M': 'Global shortcut ⌘⇧M',
+    '全局快捷键 ⌘⇧M（未生效）': 'Global shortcut ⌘⇧M (unavailable)',
+    '全局快捷键暂不可用，当前仅在控制台窗口内生效。可能已被其他程序占用。': 'Global shortcut unavailable; it currently works inside this window only. Another app may be using it.',
+    '在其他程序中按 ⌘⇧M 呼出控制台；在控制台中按可收起或展开。': 'Press ⌘⇧M in another app to open the controller; press it in the controller to toggle compact view.',
     '打开主窗口': 'Open main window', '设置': 'Settings', '退出程序': 'Quit',
     'Mac 控制台': 'Mac Controller',
     '新对话': 'New chat',
