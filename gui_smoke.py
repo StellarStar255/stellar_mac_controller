@@ -31,7 +31,24 @@ def schedule(application):
             assert window.backend_name() == backend and window.model_value() == model
             assert window.input.toPlainText() == draft and window.composer.files == [attachment]
             assert window.settings.value('language') == 'en'
+            tray = application.desktop_tray
+            assert not application.windowIcon().isNull()
+            assert not tray.icon.icon().isNull()
+            assert tray.menu.actions()[0].text() == 'Open main window'
+            if tray.icon.isVisible():
+                window.close()
+                assert not window.isVisible()
+                tray.show_window()
+                assert window.isVisible()
+                assert window.input.toPlainText() == draft
+            tray.show_settings()
+            assert window.gear_btn.isChecked()
+            window.language_box.setCurrentIndex(window.language_box.findData('zh_CN'))
+            assert tray.menu.actions()[0].text() == '打开主窗口'
+            window = application.main_window
+            window.language_box.setCurrentIndex(window.language_box.findData('en'))
             print('Bilingual GUI, stable backend/model keys, drafts and attachments: passed', flush=True)
+            print('Application icon, tray menu, window restore and translated tray actions: passed', flush=True)
             QTimer.singleShot(100, application.quit)
         except Exception:
             traceback.print_exc()

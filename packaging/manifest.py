@@ -13,7 +13,7 @@ folder = Path(sys.argv[1] if len(sys.argv) > 1 else 'release')
 platforms = {}
 lines = []
 for path in sorted(folder.iterdir()):
-    match = re.fullmatch(rf'MacController-{re.escape(__version__)}-(macos|windows|linux)-(arm64|x64)(?:-setup)?\.(pkg|exe|run|deb)', path.name)
+    match = re.fullmatch(rf'MacController-{re.escape(__version__)}-(macos|windows|linux)-(arm64|x64)(?:-setup)?\.(pkg|dmg|exe|run|deb)', path.name)
     if not match:
         continue
     with path.open('rb') as source:
@@ -21,6 +21,8 @@ for path in sorted(folder.iterdir()):
     key = f'{match[1]}-{match[2]}'
     if match[3] == 'run':
         key += '-portable'
+    elif match[3] == 'dmg':
+        key += '-disk-image'
     platforms[key] = {'name': path.name, 'sha256': digest, 'size': path.stat().st_size,
                       'url': f'https://github.com/{REPOSITORY}/releases/download/v{__version__}/{path.name}'}
     lines.append(f'{digest}  {path.name}')

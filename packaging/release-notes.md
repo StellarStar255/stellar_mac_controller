@@ -1,12 +1,10 @@
-English is now the default repository README, with a linked Chinese version.
+- macOS now provides **DMG installers for Apple Silicon and Intel**: open the disk image and drag **Mac Controller.app** into **Applications**. PKG installers remain available for guided installation and in-app updates.
+- A dedicated application icon appears in the Dock/taskbar. Windows executables and Linux application launchers also include the icon.
+- Added a macOS menu bar / Windows and Linux system tray menu: **Open main window**, **Settings**, and **Quit**. Closing the window keeps the app running when a tray is available; choose Quit to exit.
+- Tray labels follow the selected English / 简体中文 language. Conversations, settings and drafts are preserved.
 
-- Switch between **English / 简体中文** in **Settings → Language**. The choice is remembered; conversations, drafts and attachments are preserved.
-- Assistant responses and confirmation dialogs follow the selected language. Existing conversation content is kept unchanged.
-- Self-contained installers for macOS ARM/Intel, Windows x64, and Linux x64 (`.deb` and per-user `.run`).
-- In-app update downloads verify SHA-256 and size before opening the installer. Chats and settings are preserved.
+For manual DMG updates, quit the running app before replacing it. Linux desktop control requires X11. Local CLI backends require a separately installed and signed-in Claude Code or Codex CLI.
 
-Linux desktop control requires X11; Wayland is not supported yet. Windows/Linux use their own desktop tools, without macOS AppleScript/browser scripting. Local CLI backends still need a separately installed and signed-in Claude Code or Codex CLI; Claude API is also available.
-
-Installers are not Apple Developer / Authenticode signed, and the macOS package is not notarized. System installation and permission confirmations may be required.
+Installers are not Apple Developer / Authenticode signed, and macOS artifacts are not notarized. System installation and permission confirmations may be required.
 
 [English documentation](https://github.com/StellarStar255/stellar_mac_controller#readme) · [中文说明](https://github.com/StellarStar255/stellar_mac_controller/blob/main/README.zh-CN.md)

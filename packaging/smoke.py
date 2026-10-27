@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -53,6 +54,22 @@ with tempfile.TemporaryDirectory() as tmp:
     if sys.platform == 'darwin':
         package = next((ROOT/'release').glob('*.pkg'))
         subprocess.run(['pkgutil','--expand',str(package),str(Path(tmp)/'expanded')], check=True)
+        image = next((ROOT/'release').glob('*.dmg'))
+        subprocess.run(['hdiutil', 'verify', str(image)], check=True)
+        mount = Path(tmp) / 'mounted'
+        subprocess.run(['hdiutil', 'attach', str(image), '-readonly', '-nobrowse',
+                        '-mountpoint', str(mount)], check=True)
+        try:
+            assert (mount/'Applications').is_symlink()
+            assert (mount/'Applications').readlink() == Path('/Applications')
+            installed = Path(tmp)/'Applications/Mac Controller.app'
+            shutil.copytree(mount/'Mac Controller.app', installed, symlinks=True)
+        finally:
+            subprocess.run(['hdiutil', 'detach', str(mount)], check=True)
+        installed_exe = installed/'Contents/MacOS/MacController'
+        subprocess.run(['codesign', '--verify', '--deep', '--strict', str(installed)], check=True)
+        subprocess.run([str(installed_exe), '--smoke-test'], env=env, timeout=60, check=True)
+        subprocess.run([str(installed_exe)], env=env, timeout=60, check=True)
     if sys.platform == 'win32':
         installer = next((ROOT/'release').glob('*.exe'))
         install_dir = Path(tmp)/'installed'

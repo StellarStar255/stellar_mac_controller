@@ -18,12 +18,15 @@ class Updates(unittest.TestCase):
         from version import __version__
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            suffixes = ['macos-arm64.pkg', 'macos-x64.pkg', 'windows-x64-setup.exe',
+            suffixes = ['macos-arm64.pkg', 'macos-x64.pkg', 'macos-arm64.dmg', 'macos-x64.dmg', 'windows-x64-setup.exe',
                         'linux-x64.deb', 'linux-x64.run']
             for suffix in suffixes:
                 (root / f'MacController-{__version__}-{suffix}').write_bytes(b'package')
             subprocess.run([sys.executable,str(Path(__file__).resolve().parents[1]/'packaging/manifest.py'),tmp],check=True)
             manifest = json.loads((root/'update-manifest.json').read_text())
+            for key in ('macos-arm64', 'macos-x64'):
+                self.assertTrue(manifest['platforms'][key+'-disk-image']['name'].endswith('.dmg'))
+            self.assertEqual(len((root/'SHA256SUMS').read_text().splitlines()), len(suffixes))
             tag = 'v'+__version__
             release = {'tag_name':tag,'assets':[{'name':'update-manifest.json',
                         'browser_download_url':f'{updater.RELEASES}/download/{tag}/update-manifest.json'}]}

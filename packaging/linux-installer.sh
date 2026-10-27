@@ -18,6 +18,8 @@ if ! mv "$stage/MacController" "$root"; then
   exit 1
 fi
 ln -sfn "$root/MacController" "$HOME/.local/bin/mac-controller"
+mkdir -p "$base/icons/hicolor/256x256/apps"
+cp "$root/_internal/assets/app-icon.png" "$base/icons/hicolor/256x256/apps/stellar-mac-controller.png"
 # Quote paths according to the freedesktop Exec field format.
 exec_path=$(printf '%s' "$root/MacController" | sed 's/\\/\\\\/g; s/"/\\"/g; s/`/\\`/g; s/\$/\\$/g; s/%/%%/g')
 cat > "$base/applications/stellar-mac-controller.desktop" <<EOF
@@ -26,6 +28,7 @@ Type=Application
 Name=Mac Controller
 Comment=Desktop AI assistant
 Exec="$exec_path"
+Icon=stellar-mac-controller
 Terminal=false
 Categories=Utility;
 EOF

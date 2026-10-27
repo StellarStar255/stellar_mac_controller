@@ -880,7 +880,10 @@ class MainWindow(QMainWindow):
         replacement.composer.add_files(files)
         replacement.gear_btn.setChecked(True)
         QApplication.instance().main_window = replacement
+        if tray := getattr(QApplication.instance(), 'desktop_tray', None):
+            tray.refresh()
         replacement.show()
+        self._replacing = True
         self.close()
         self.deleteLater()
 
@@ -1248,7 +1251,23 @@ class MainWindow(QMainWindow):
         self.exit_mini()
         self.refresh_history()
 
+    def request_quit(self):
+        if self.updater.worker and self.updater.worker.isRunning():
+            return
+        application = QApplication.instance()
+        application._quitting = True
+        self.close()
+        application.quit()
+
     def closeEvent(self, e):
+        application = QApplication.instance()
+        tray = getattr(application, 'desktop_tray', None)
+        if (tray and tray.icon.isVisible() and not getattr(application, '_quitting', False)
+                and not getattr(self, '_replacing', False)):
+            self.save_state()
+            self.hide()
+            e.ignore()
+            return
         if self.updater.worker and self.updater.worker.isRunning():
             e.ignore()
             return
@@ -1279,6 +1298,11 @@ def main():
         QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
                           os.environ["MAC_CTRL_DATA_DIR"])
     app.setApplicationName("Mac 控制台")
+    app.setWindowIcon(QIcon(str(HERE / 'assets/app-icon.png')))
+    if sys.platform == 'darwin':
+        from AppKit import NSApplication, NSImage
+        image = NSImage.alloc().initWithContentsOfFile_(str(HERE / 'assets/app-icon.png'))
+        NSApplication.sharedApplication().setApplicationIconImage_(image)
     settings = app_settings()
     default_language = "zh_CN" if QLocale.system().name().startswith("zh") else "en"
     i18n.set_language(os.environ.get("MAC_CTRL_LANGUAGE") or settings.value("language", default_language))
@@ -1287,6 +1311,9 @@ def main():
     app.setFont(f)
     w = MainWindow()
     app.main_window = w
+    from desktop_ui import DesktopTray
+    app.desktop_tray = DesktopTray(app)
+    app.aboutToQuit.connect(app.desktop_tray.cleanup)
     w.show()
     if os.environ.get("MACCTRL_GUI_SMOKE"):
         w.gear_btn.setChecked(True)

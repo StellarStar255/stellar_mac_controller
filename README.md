@@ -10,11 +10,15 @@ Download the installer for your computer from the [latest release](https://githu
 
 | Platform | File | Installation |
 | --- | --- | --- |
-| macOS, Apple Silicon | `macos-arm64.pkg` | Double-click and follow the installer. Installs in Applications. |
-| macOS, Intel | `macos-x64.pkg` | Double-click and follow the installer. Installs in Applications. |
+| macOS, Apple Silicon | `macos-arm64.dmg` | Double-click, then drag Mac Controller into Applications. |
+| macOS, Intel | `macos-x64.dmg` | Double-click, then drag Mac Controller into Applications. |
 | Windows 10/11, x64 | `windows-x64-setup.exe` | Double-click to install for your user and create a desktop shortcut. |
 | Ubuntu/Debian, x64 | `linux-x64.deb` | Open with your system software installer. Ubuntu 22.04+ or equivalent. |
 | Other Linux x64 / per-user install | `linux-x64.run` | Run `sh <downloaded-file>.run`. Launch from the applications menu. |
+
+macOS also provides `.pkg` installers for guided installation and in-app updates. For a DMG update, quit Mac Controller before replacing the application.
+
+The application has its own Dock/taskbar icon and a menu bar/system tray icon. Use the tray menu to open the window, open Settings or Quit. Closing the window keeps the app running when the tray is available; choose **Quit** to exit. On Linux desktops without a system tray, closing the window exits the app.
 
 Installers do not currently have Apple Developer / Windows Authenticode distribution signatures. The macOS package is not notarized. Your operating system may require an installation confirmation. Published SHA-256 checksums verify download integrity; they are not publisher signatures.
 

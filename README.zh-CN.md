@@ -30,11 +30,15 @@ Codex 通过 `exec --json` 接入，Mac 操作统一使用本项目的 MCP 工�
 
 | 系统 | 安装包 | 安装方式 |
 | --- | --- | --- |
-| macOS Apple Silicon | `macos-arm64.pkg` | 双击安装到应用程序目录 |
-| macOS Intel | `macos-x64.pkg` | 双击安装到应用程序目录 |
+| macOS Apple Silicon | `macos-arm64.dmg` | 双击后将程序拖入 Applications |
+| macOS Intel | `macos-x64.dmg` | 双击后将程序拖入 Applications |
 | Windows 10/11 x64 | `windows-x64-setup.exe` | 双击按提示安装，生成桌面快捷方式，无需管理员权限 |
 | Ubuntu/Debian x64（Ubuntu 22.04+ 或相当版本） | `linux-x64.deb` | 双击交给系统软件安装器安装 |
 | 其它 Linux x64 / 用户目录安装 | `linux-x64.run` | 运行 `sh 下载的文件名.run`，安装到用户目录，应用菜单中启动 |
+
+macOS 同时提供 `.pkg` 向导安装包，程序内更新使用该格式。通过 DMG 更新时，请先退出程序再替换旧版本。
+
+程序有独立的 Dock / 任务栏图标，以及顶部菜单栏 / 系统托盘图标。托盘菜单可打开主窗口、打开设置或退出程序。有托盘时关闭窗口会保留后台运行，选择「退出程序」才会结束；Linux 桌面不支持系统托盘时，关闭窗口会直接退出。
 
 设置面板的「检查更新」会下载对应平台安装包、核对 SHA-256 和文件大小，然后启动安装程序。macOS/Windows 仍需完成系统安装确认；Linux `.deb` 交给系统软件安装器，`.run` 自动替换用户目录内的程序。更新不删除对话、附件、笔记或设置。下载失败或校验失败会保留当前版本。
 

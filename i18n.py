@@ -4,6 +4,7 @@ import re
 
 _LANGUAGE = 'en'
 CATALOG = {
+    '打开主窗口': 'Open main window', '设置': 'Settings', '退出程序': 'Quit',
     'Mac 控制台': 'Mac Controller',
     '新对话': 'New chat',
     '想让 Mac 做什么？': 'What would you like your Mac to do?',

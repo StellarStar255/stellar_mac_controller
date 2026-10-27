@@ -70,6 +70,6 @@ class UpdateController(QObject):
         try:
             self.window.save_state()
             updater.launch_installer(path)
-            QTimer.singleShot(200, self.window.close)
+            QTimer.singleShot(200, self.window.request_quit)
         except Exception as error:
             self._error(str(error))

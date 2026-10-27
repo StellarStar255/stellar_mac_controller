@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -22,8 +23,10 @@ def main():
     output = ROOT / 'release'
     output.mkdir(exist_ok=True)
     (ROOT / 'build').mkdir(exist_ok=True)
+    from app_icons import draw_icon
+    draw_icon(256).save(ROOT / 'build/AppIcon.ico', sizes=[(16, 16), (32, 32), (48, 48), (256, 256)])
     if sys.platform == 'darwin':
-        from make_app import make_icns
+        from app_icons import make_icns
         make_icns(ROOT / 'build/AppIcon.icns')
     run([sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', 'MacController.spec'])
     if sys.platform == 'darwin':
@@ -43,6 +46,19 @@ def main():
         run(['pkgbuild', '--root', pkgroot, '--identifier', 'com.stellar.maccontroller',
              '--version', __version__, '--component-plist', components,
              '--install-location', '/Applications', package])
+        # A drag-to-Applications disk image, containing only the frozen app.
+        with tempfile.TemporaryDirectory(dir=ROOT / 'build') as tmp:
+            image_root = Path(tmp)
+            shutil.copytree(app, image_root / app.name, symlinks=True)
+            (image_root / 'Applications').symlink_to('/Applications', target_is_directory=True)
+            (image_root / 'Install - 安装.txt').write_text(
+                'Drag Mac Controller.app into Applications, then launch it from Applications.\n'
+                'To update, quit the running app first and replace the existing application.\n\n'
+                '将 Mac Controller.app 拖入 Applications，然后从“应用程序”启动。\n'
+                '更新时请先退出正在运行的程序，再替换旧版本。\n', encoding='utf-8')
+            run(['hdiutil', 'create', '-volname', 'Mac Controller', '-srcfolder', image_root,
+                 '-format', 'UDZO', '-fs', 'HFS+', '-ov',
+                 output / f'MacController-{__version__}-{platform_key()}.dmg'])
     elif sys.platform == 'win32':
         compiler = shutil.which('ISCC') or r'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
         run([compiler, f'/DAppVersion={__version__}', ROOT / 'packaging/windows.iss'])
@@ -62,9 +78,12 @@ def main():
         shutil.copytree(ROOT / 'dist/MacController', appdir, symlinks=True, dirs_exist_ok=True)
         desktop = debroot / 'usr/share/applications'
         desktop.mkdir(parents=True, exist_ok=True)
+        icons = debroot / 'usr/share/icons/hicolor/256x256/apps'
+        icons.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / 'assets/app-icon.png', icons / 'stellar-mac-controller.png')
         (desktop / 'stellar-mac-controller.desktop').write_text(
             '[Desktop Entry]\nType=Application\nName=Mac Controller\n'
-            'Exec=/opt/stellar-mac-controller/MacController\nTerminal=false\nCategories=Utility;\n')
+            'Exec=/opt/stellar-mac-controller/MacController\nIcon=stellar-mac-controller\nTerminal=false\nCategories=Utility;\n')
         control = debroot / 'DEBIAN'
         control.mkdir(exist_ok=True)
         (control / 'control').write_text(

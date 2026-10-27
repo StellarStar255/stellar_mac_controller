@@ -15,6 +15,7 @@ pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='MacController',
           debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
           console=True, argv_emulation=False, target_arch=None,
+          icon=str(root / 'build/AppIcon.ico') if sys.platform == 'win32' else None,
           codesign_identity=None, entitlements_file=None)
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='MacController')
 if mac:
