@@ -318,4 +318,6 @@ TOOLS = [('list_apps', t_list_apps, '列出正在运行的程序和最前面的�
 # are deliberately absent, so the model cannot accidentally use AppleScript.
 TOOLS = [(name, fn, description.replace("zsh", "系统终端").replace("Mac", "电脑"), schema)
          for name, fn, description, schema in TOOLS]
+from task_scheduler import tool_specs
+TOOLS += tool_specs(lambda: WORKDIR)
 TOOL_MAP = {name: fn for name, fn, _, _ in TOOLS}

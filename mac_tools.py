@@ -380,8 +380,9 @@ def _label(el):
 def _app_element(pid):
     app = AX.AXUIElementCreateApplication(pid)
     AX.AXUIElementSetMessagingTimeout(app, 1.5)
-    # Chrome / Electron 类程序需要主动打开辅助功能树
-    AX.AXUIElementSetAttributeValue(app, "AXManualAccessibility", True)
+    # 不同程序使用不同的辅助功能开关；不支持的属性会返回错误码。
+    for name in ("AXManualAccessibility", "AXEnhancedUserInterface"):
+        AX.AXUIElementSetAttributeValue(app, name, True)
     return app
 
 
@@ -397,8 +398,13 @@ def t_read_ui(app=None, max_elements=200, include_menu_bar=False):
     _ELEMENTS.clear()
     lines = []
     budget = {"visit": 4000, "emit": int(max_elements)}
+    content_elements = 0
 
     def emit(el, role, depth, frame, extra=""):
+        nonlocal content_elements
+        if role not in ("AXWindow", "AXSheet") and _attr(el, "AXSubrole") not in (
+                "AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXFullScreenButton"):
+            content_elements += 1
         eid = len(_ELEMENTS) + 1
         label = _label(el)
         _ELEMENTS[eid] = {"el": el, "role": role, "label": label, "frame": frame, "pid": pid}
@@ -451,7 +457,9 @@ def t_read_ui(app=None, max_elements=200, include_menu_bar=False):
         if role in ACTIONABLE or role in ("AXWindow", "AXSheet", "AXWebArea", "AXHeading") \
                 or (role in ("AXGroup", "AXToolbar") and _label(el)):
             emit(el, role, depth, frame, extra.strip())
-        for child in _attr(el, "AXChildren") or []:
+        children = (_attr(el, "AXChildren") or _attr(el, "AXChildrenInNavigationOrder")
+                    or _attr(el, "AXContents") or [])
+        for child in children:
             walk(child, depth + 1, in_menu or role in ("AXMenuBar", "AXMenu"))
 
     windows = list(_attr(appel, "AXWindows") or [])
@@ -463,6 +471,7 @@ def t_read_ui(app=None, max_elements=200, include_menu_bar=False):
         lines.append("提示：这是浏览器，网页内容请改用 web_read / web_act，更快更准。")
     for w in windows[:4]:
         walk(w, 0)
+    window_content_elements = content_elements
     if include_menu_bar:
         mb = _attr(appel, "AXMenuBar")
         if mb is not None:
@@ -473,8 +482,10 @@ def t_read_ui(app=None, max_elements=200, include_menu_bar=False):
         lines.append("（这个程序没有可见窗口）")
     if budget["emit"] <= 0:
         lines.append("…元素过多已截断；可调大 max_elements，或配合截图。")
-    if len(_ELEMENTS) <= 2:
-        lines.append("（几乎读不到元素：这个程序可能不支持辅助功能，请改用 screenshot + click）")
+    if windows and window_content_elements == 0:
+        lines.append("（未读到窗口内的内容；窗口按钮和菜单不代表能读取正文。已尝试辅助功能开关；"
+                     "若程序未开放正文，则无法通用地免截图读取，可改用程序提供的复制/导出功能，"
+                     "或 screenshot + click。）")
     return "\n".join(lines)
 
 
@@ -1032,6 +1043,8 @@ TOOLS = [
      _schema({})),
     ("wait", t_wait, "等待若干秒（等页面/程序加载）。", _schema({"seconds": {"type": "number"}}, ["seconds"])),
 ]
+from task_scheduler import tool_specs
+TOOLS += tool_specs(lambda: WORKDIR)
 TOOL_MAP = {name: fn for name, fn, _, _ in TOOLS}
 
 

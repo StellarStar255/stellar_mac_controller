@@ -63,6 +63,8 @@ TOOL_CN = {
     "scroll": ("🖱", "滚动"), "wait": ("⏳", "等待"), "note_write": ("📝", "写笔记"), "note_read": ("📖", "读笔记"),
     "note_list": ("📂", "查看文件"), "read_file": ("📄", "查看附件"),
     "web_read": ("🌐", "读网页"), "web_act": ("🌐", "操作网页"),
+    "schedule_task": ("🕒", "创建定时任务"), "list_scheduled_tasks": ("🕒", "查看定时任务"),
+    "update_scheduled_task": ("🕒", "修改定时任务"),
 }
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".heic", ".bmp", ".tiff"}
 
@@ -738,6 +740,9 @@ class MainWindow(QMainWindow):
         g.addWidget(QLabel(tr("语言")), 6, 0)
         g.addWidget(self.language_box, 6, 1, 1, 2)
         self.language_box.currentIndexChanged.connect(self.change_language)
+        tasks_btn = QPushButton(tr("定时任务"))
+        tasks_btn.clicked.connect(lambda: self.scheduler.show_manager())
+        g.addWidget(tasks_btn, 7, 0, 1, 3)
         self.settings_card.hide()
         self.gear_btn.toggled.connect(self.settings_card.setVisible)
 
@@ -859,6 +864,8 @@ class MainWindow(QMainWindow):
         self.front_timer.start()
         self.perm_timer = QTimer(self, timeout=self.check_permissions, interval=3000)
         self.perm_timer.start()
+        from scheduled_ui import ScheduledTasks
+        self.scheduler = ScheduledTasks(self)
 
     # ------------------------------------------------------------ 外观
     def backend_name(self):
@@ -886,6 +893,7 @@ class MainWindow(QMainWindow):
         draft, files, geometry = self.input.toPlainText(), list(self.composer.files), self.geometry()
         if self.backend:
             self.backend.shutdown()
+        self.scheduler.shutdown()
         i18n.set_language(selected)
         replacement = MainWindow()
         replacement.setGeometry(geometry)
@@ -1164,11 +1172,18 @@ class MainWindow(QMainWindow):
             self.send()
 
     def stop(self):
+        if self.scheduler.active and self.scheduler.backend:
+            self.scheduler.backend.stop()
+            self.set_status("正在停止…")
+            return
         if self.running and self.backend:
             self.backend.stop()
             self.set_status("正在停止…")
 
     def send(self):
+        if self.scheduler.active:
+            self.set_status(tr("定时任务正在执行，请完成或停止后发送。"))
+            return
         text = self.input.toPlainText().strip()
         if not (text or self.composer.files):
             return
@@ -1188,6 +1203,12 @@ class MainWindow(QMainWindow):
         if files:
             self.add("files", json.dumps([str(f) for f in files], ensure_ascii=False))
         self.add("user", text)
+        self.chat.data['task_config'] = {
+            'backend': self.backend_key[0], 'model': self.backend_key[1],
+            'confirm': self.backend_key[2], 'confirm_delete': self.backend_key[4],
+            'effort': self.backend_key[5],
+        }
+        self.chat.save()
         front = self.last_front[0] if self.last_front else None
         self.backend.send(text, front, str(folder), [str(f) for f in files])
         if queued:
@@ -1294,6 +1315,7 @@ class MainWindow(QMainWindow):
         if self.backend:
             self.backend.shutdown()
         self.save_state()
+        self.scheduler.shutdown()
         super().closeEvent(e)
 
 

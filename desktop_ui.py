@@ -35,6 +35,7 @@ class DesktopTray:
         self.menu.clear()
         self.menu.addAction(tr('打开主窗口'), self.show_window)
         self.menu.addAction(tr('设置'), self.show_settings)
+        self.menu.addAction(tr('定时任务'), lambda: self.application.main_window.scheduler.show_manager())
         self.menu.addSeparator()
         self.menu.addAction(tr('退出程序'), self.quit)
 

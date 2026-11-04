@@ -4,6 +4,14 @@
 
 A desktop AI assistant that uses your own computer tools to operate apps. Supports macOS, Windows and Linux X11, with a PyQt6 interface, persistent conversations, file attachments and in-app updates.
 
+## Scheduled tasks
+
+Ask “Check unread WeChat messages in 30 minutes and flag anything that needs my attention” for a one-time task, or “Check WeChat every 30 minutes” for a repeating task (minimum interval: 60 seconds). Tasks retain the backend, model, reasoning effort and confirmation settings chosen when created. API tasks use the current API key from settings; keys are not stored in task records.
+
+Open **Scheduled tasks** in settings or the tray menu to view, pause, resume or cancel tasks. The assistant can also manage tasks in their original chat. Results are saved to that chat and a desktop notification is attempted, subject to system notification permissions. Stopping a running task pauses it; cancellation cannot undo actions already performed.
+
+Keep the app running, including in the tray. Tasks do not run while the app is quit or wake a sleeping computer. Sleep, macOS screen lock and other assistant work delay execution. Missed occurrences are coalesced into one run per task; repeating tasks then continue on their original cadence. Pending tasks survive restart. Tasks interrupted during execution are paused for manual review and resume. Existing application permissions and confirmation settings still apply.
+
 ## Install
 
 Download the installer for your computer from the [latest release](https://github.com/StellarStar255/stellar_mac_controller/releases/latest). Python and the application dependencies are bundled.
