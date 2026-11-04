@@ -28,7 +28,7 @@ macOS also provides `.pkg` installers for guided installation and in-app updates
 
 The application has its own Dock/taskbar icon and a menu bar/system tray icon. Use the tray menu to open the window, open Settings or Quit. Closing the window keeps the app running when the tray is available; choose **Quit** to exit. On Linux desktops without a system tray, closing the window exits the app.
 
-The finalized macOS DMGs and their apps are signed with Developer ID, notarized by Apple, and include stapled notarization tickets. macOS may still request normal first-launch, Accessibility, Screen Recording and Automation permissions. The legacy `.pkg` installer is not Developer ID Installer signed; use the DMG for the signed macOS download. Windows installers do not currently have Authenticode signatures. Published SHA-256 checksums verify download integrity.
+The finalized macOS DMGs and their apps are signed with Developer ID, notarized by Apple, and include stapled notarization tickets. Finalized PKG updates contain the same signed, notarized app as the DMG, preserving its signing identity across updates. The PKG installer itself is not Developer ID Installer signed. macOS may still request normal first-launch, Accessibility, Screen Recording and Automation permissions. Windows installers do not currently have Authenticode signatures. Published SHA-256 checksums verify download integrity.
 
 ### Updates
 
@@ -136,6 +136,6 @@ python3 packaging/sign_macos.py /path/to/unsigned/*-macos-*.dmg \
   --profile stellar-notary
 ```
 
-This signs every nested native component with hardened runtime, notarizes and staples the app, rebuilds and signs the DMG, then notarizes, staples and verifies the DMG with Gatekeeper. A rejected Apple submission stops the command. Private keys remain in the local keychain; do not commit or upload certificates or credentials.
+This signs every nested native component with hardened runtime, notarizes and staples the app, builds a PKG from that same app, rebuilds and signs the DMG, then notarizes, staples and verifies the DMG with Gatekeeper. The PKG is expanded to check its app signature, notarization ticket and designated code requirement. A rejected Apple submission or payload verification stops the command. Private keys remain in the local keychain; do not commit or upload certificates or credentials.
 
-Replace the draft's DMGs with the finalized images, regenerate `SHA256SUMS` and `update-manifest.json` from all final assets using `python3 packaging/manifest.py <asset-directory>`, and publish only after testing the signed Apple Silicon app. PKG installer signing additionally requires a separate Developer ID Installer certificate.
+Replace both the draft's DMG and PKG with the finalized files, regenerate `SHA256SUMS` and `update-manifest.json` from all final assets using `python3 packaging/manifest.py <asset-directory>`, and publish only after testing the signed Apple Silicon app. Never publish the CI draft's temporary-signed PKG unchanged. To rebuild a PKG from an existing signed DMG without changing its identity, use `python3 packaging/sign_macos.py <signed.dmg> --output <directory> --package-only`. Signing the installer itself additionally requires a separate Developer ID Installer certificate.

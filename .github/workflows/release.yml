@@ -64,7 +64,7 @@ jobs:
           merge-multiple: true
       - run: python packaging/manifest.py release
       # Developer ID keys stay in the maintainer's local keychain. Finalize the
-      # Apple Silicon DMG with packaging/sign_macos.py before publishing this draft.
+      # Apple Silicon DMG and PKG with packaging/sign_macos.py before publishing.
       - name: Stage draft installers, checksums and update manifest
         env:
           GH_TOKEN: ${{ github.token }}

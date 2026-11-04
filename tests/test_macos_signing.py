@@ -48,3 +48,22 @@ class MacOSSigning(unittest.TestCase):
             with self.assertRaises(SystemExit) as error:
                 signing.main()
             self.assertEqual(error.exception.code, 2)
+
+    def test_pkg_builder_rejects_temporary_signed_payload(self):
+        result = subprocess.CompletedProcess([], 0, stdout='', stderr='Signature=adhoc\nflags=runtime')
+        with patch.object(signing, 'run', return_value=result):
+            with self.assertRaisesRegex(RuntimeError, 'hardened Developer ID'):
+                signing.package_signed_app(Path('Example.app'), Path('Example.pkg'))
+
+    def test_designated_requirement_reads_both_output_streams(self):
+        requirement = 'designated => anchor apple generic and identifier "com.example.app"'
+        for stdout, stderr in ((requirement, 'Executable=/path/Example.app'), ('', requirement)):
+            result = subprocess.CompletedProcess([], 0, stdout=stdout, stderr=stderr)
+            with patch.object(signing, 'run', return_value=result):
+                self.assertEqual(signing.designated_requirement(Path('Example.app')), requirement)
+
+    def test_missing_designated_requirement_stops_packaging(self):
+        result = subprocess.CompletedProcess([], 0, stdout='', stderr='Executable=/path/Example.app')
+        with patch.object(signing, 'run', return_value=result):
+            with self.assertRaisesRegex(RuntimeError, 'designated code requirement'):
+                signing.designated_requirement(Path('Example.app'))

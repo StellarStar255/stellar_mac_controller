@@ -50,7 +50,7 @@ macOS 同时提供 `.pkg` 向导安装包，程序内更新使用该格式。通
 
 设置面板的「检查更新」会下载对应平台安装包、核对 SHA-256 和文件大小，然后启动安装程序。macOS/Windows 仍需完成系统安装确认；Linux `.deb` 交给系统软件安装器，`.run` 自动替换用户目录内的程序。更新不删除对话、附件、笔记或设置。下载失败或校验失败会保留当前版本。
 
-正式发布的 macOS DMG 及内部应用使用 Developer ID 签名，并经过 Apple 公证，附有公证票据。首次启动及辅助功能、屏幕录制、自动化权限仍可能需要系统确认。旧的 `.pkg` 安装包尚未使用 Developer ID Installer 证书签名，Mac 用户请下载 DMG。Windows 安装包尚未使用 Authenticode 签名。SHA256SUMS 用于下载完整性校验。
+正式发布的 macOS DMG 及内部应用使用 Developer ID 签名，并经过 Apple 公证，附有公证票据。最终 PKG 更新包包含与 DMG 相同的正式签名、公证应用，保持更新前后的签名身份一致；PKG 安装器自身尚未使用 Developer ID Installer 证书签名。首次启动及辅助功能、屏幕录制、自动化权限仍可能需要系统确认。Windows 安装包尚未使用 Authenticode 签名。SHA256SUMS 用于下载完整性校验。
 
 Windows 使用 UI Automation 和鼠标键盘工具；Linux 提供 X11 截图、鼠标键盘、命令及笔记工具，不提供辅助功能树。macOS 的 AppleScript、`web_read/web_act` 不适用于 Windows/Linux；这些平台改用界面工具。Linux Wayland 暂不支持桌面控制，切换到 Xorg/X11 会话后使用。Linux 需要图形桌面的 Qt/X11 库，以及 `xclip`、`wmctrl`、`xdotool`；Ubuntu 可执行：
 
@@ -141,9 +141,9 @@ python3 packaging/sign_macos.py /path/to/unsigned/*-macos-*.dmg \
   --profile stellar-notary
 ```
 
-脚本会签名所有原生组件，启用 Hardened Runtime，公证并附加应用票据，重新生成 DMG，再签名、公证、附加 DMG 票据并验证 Gatekeeper。Apple 拒绝公证时会停止。私钥保留在本机钥匙串中，不应提交或上传证书、密码。
+脚本会签名所有原生组件，启用 Hardened Runtime，公证并附加应用票据，将同一应用封装成 PKG，重新生成 DMG，再签名、公证、附加 DMG 票据并验证 Gatekeeper。PKG 会展开校验应用签名、公证票据及指定代码要求。Apple 拒绝公证或包内应用校验失败时会停止。私钥保留在本机钥匙串中，不应提交或上传证书、密码。
 
-用最终签名 DMG 替换草稿文件，基于全部最终安装包重新运行 `python3 packaging/manifest.py <安装包目录>` 更新校验值，完成 Apple 芯片版启动测试后再发布。PKG 安装器签名还需独立的 Developer ID Installer 证书。
+同时用最终 DMG 和 PKG 替换草稿文件，基于全部最终安装包重新运行 `python3 packaging/manifest.py <安装包目录>` 更新校验值，完成 Apple 芯片版启动测试后再发布。不得直接发布 CI 草稿中包含临时签名应用的 PKG。已有正式签名 DMG 可用 `python3 packaging/sign_macos.py <签名.dmg> --output <目录> --package-only` 重建 PKG。PKG 安装器自身签名还需独立的 Developer ID Installer 证书。
 
 ### 窗口与快捷键
 

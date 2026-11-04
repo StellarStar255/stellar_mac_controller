@@ -70,6 +70,73 @@ def configure_gui_bundle(app):
     return info
 
 
+def verify_distribution_app(app):
+    run(['codesign', '--verify', '--deep', '--strict', app])
+    details = run(['codesign', '-dvvv', app], capture_output=True, text=True).stderr
+    if 'Authority=Developer ID Application:' not in details or 'runtime' not in details:
+        raise RuntimeError('Refusing to package an app without a hardened Developer ID signature')
+    run(['xcrun', 'stapler', 'validate', app])
+    run(['spctl', '--assess', '--type', 'execute', '--verbose=2', app])
+
+
+def package_signed_app(app, target):
+    """PKG updates must install the same signed app identity as DMG installs."""
+    verify_distribution_app(app)
+    info = plistlib.loads((app/'Contents/Info.plist').read_bytes())
+    requirement = designated_requirement(app)
+    with tempfile.TemporaryDirectory(prefix='mac-controller-pkg-') as tmp:
+        root = Path(tmp)
+        payload = root/'payload'
+        payload.mkdir()
+        # ditto preserves resource forks, extended attributes and stapled tickets.
+        run(['ditto', app, payload/app.name])
+        components = root/'components.plist'
+        run(['pkgbuild', '--analyze', '--root', payload, components])
+        entries = plistlib.loads(components.read_bytes())
+        for entry in entries:
+            entry['BundleIsRelocatable'] = False
+            entry['BundleOverwriteAction'] = 'upgrade'
+        components.write_bytes(plistlib.dumps(entries))
+        run(['pkgbuild', '--root', payload, '--identifier', info['CFBundleIdentifier'],
+             '--version', info['CFBundleShortVersionString'], '--component-plist', components,
+             '--install-location', '/Applications', target])
+        expanded = root/'expanded'
+        run(['pkgutil', '--expand-full', target, expanded])
+        installed = list(expanded.rglob(app.name))
+        if len(installed) != 1:
+            raise RuntimeError('PKG must contain exactly one controller application')
+        verify_distribution_app(installed[0])
+        if designated_requirement(installed[0]) != requirement:
+            raise RuntimeError('PKG payload changed the app signing identity')
+    print(f'PKG payload verified: same signed, notarized app as DMG: {target}', flush=True)
+
+
+def designated_requirement(app):
+    result = run(['codesign', '-d', '-r-', app], capture_output=True, text=True)
+    lines = [line.strip() for line in (result.stdout + '\n' + result.stderr).splitlines()
+             if line.strip().startswith('designated =>')]
+    if len(lines) != 1:
+        raise RuntimeError('Unable to read the app designated code requirement')
+    return lines[0]
+
+
+def repackage_signed_image(image, output):
+    """Repair an existing release PKG without re-signing or changing its DMG."""
+    run(['codesign', '--verify', '--strict', image])
+    run(['xcrun', 'stapler', 'validate', image])
+    with tempfile.TemporaryDirectory(prefix='mac-controller-repackage-') as tmp:
+        mount = Path(tmp)/'mounted'
+        run(['hdiutil', 'attach', image, '-readonly', '-nobrowse', '-mountpoint', mount])
+        try:
+            app = mount/'Mac Controller.app'
+            info = plistlib.loads((app/'Contents/Info.plist').read_bytes())
+            if not image.name.startswith(f"MacController-{info['CFBundleShortVersionString']}-macos-"):
+                raise ValueError('DMG filename and app version differ')
+            package_signed_app(app, output/(image.stem+'.pkg'))
+        finally:
+            run(['hdiutil', 'detach', mount])
+
+
 def finalize(image, output, identity, profile, records):
     with tempfile.TemporaryDirectory(prefix='mac-controller-sign-') as tmp:
         root = Path(tmp)
@@ -93,6 +160,7 @@ def finalize(image, output, identity, profile, records):
         run(['xcrun', 'stapler', 'staple', app])
         run(['xcrun', 'stapler', 'validate', app])
         run(['spctl', '--assess', '--type', 'execute', '--verbose=2', app])
+        package_signed_app(app, output/(image.stem+'.pkg'))
         (stage/'Applications').symlink_to('/Applications', target_is_directory=True)
         (stage/'Install - 安装.txt').write_text(
             'Quit the old app, drag Mac Controller.app into Applications, then launch it there.\n'
@@ -116,13 +184,18 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--identity', default=os.environ.get('MACOS_SIGN_IDENTITY'))
     parser.add_argument('--profile', default=os.environ.get('NOTARY_PROFILE', 'stellar-notary'))
+    parser.add_argument('--package-only', action='store_true',
+                        help='Build verified PKGs from already signed and notarized DMGs; leave DMGs unchanged')
     args = parser.parse_args()
-    if not args.identity or args.identity == '-':
+    if not args.package_only and (not args.identity or args.identity == '-'):
         parser.error('A Developer ID Application identity is required; ad-hoc signing is not allowed')
     args.output.mkdir(parents=True, exist_ok=True)
     records = ROOT/'build/notary'
     records.mkdir(parents=True, exist_ok=True)
     for image in args.images:
+        if args.package_only:
+            repackage_signed_image(image.resolve(), args.output.resolve())
+            continue
         if image.resolve() == (args.output/image.name).resolve():
             parser.error('Input and output must be different paths')
         finalize(image.resolve(), args.output.resolve(), args.identity, args.profile, records)
