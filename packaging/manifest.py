@@ -26,7 +26,7 @@ for path in sorted(folder.iterdir()):
     platforms[key] = {'name': path.name, 'sha256': digest, 'size': path.stat().st_size,
                       'url': f'https://github.com/{REPOSITORY}/releases/download/v{__version__}/{path.name}'}
     lines.append(f'{digest}  {path.name}')
-required = {'macos-arm64', 'macos-x64', 'windows-x64', 'linux-x64'}
+required = {'macos-arm64', 'windows-x64', 'linux-x64'}
 if not required.issubset(platforms):
     raise SystemExit(f'Missing installers: {required - platforms.keys()}')
 (folder / 'update-manifest.json').write_text(json.dumps({'version': __version__, 'platforms': platforms}, indent=2)+'\n')

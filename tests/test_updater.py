@@ -18,24 +18,36 @@ class Updates(unittest.TestCase):
         from version import __version__
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            suffixes = ['macos-arm64.pkg', 'macos-x64.pkg', 'macos-arm64.dmg', 'macos-x64.dmg', 'windows-x64-setup.exe',
+            suffixes = ['macos-arm64.pkg', 'macos-arm64.dmg', 'windows-x64-setup.exe',
                         'linux-x64.deb', 'linux-x64.run']
             for suffix in suffixes:
                 (root / f'MacController-{__version__}-{suffix}').write_bytes(b'package')
             subprocess.run([sys.executable,str(Path(__file__).resolve().parents[1]/'packaging/manifest.py'),tmp],check=True)
             manifest = json.loads((root/'update-manifest.json').read_text())
-            for key in ('macos-arm64', 'macos-x64'):
+            for key in ('macos-arm64',):
                 self.assertTrue(manifest['platforms'][key+'-disk-image']['name'].endswith('.dmg'))
             self.assertEqual(len((root/'SHA256SUMS').read_text().splitlines()), len(suffixes))
             tag = 'v'+__version__
             release = {'tag_name':tag,'assets':[{'name':'update-manifest.json',
                         'browser_download_url':f'{updater.RELEASES}/download/{tag}/update-manifest.json'}]}
-            for system,key,suffix in [('darwin','macos-arm64','.pkg'),('darwin','macos-x64','.pkg'),
+            for system,key,suffix in [('darwin','macos-arm64','.pkg'),
                                       ('win32','windows-x64','.exe'),('linux','linux-x64','.deb')]:
                 with patch('updater._json',side_effect=[release,manifest]), patch('updater.platform_key',return_value=key), patch.object(updater.sys,'platform',system):
                     entry=updater.check_update(current='0.1.0')
                 self.assertTrue(entry['name'].endswith(suffix))
                 self.assertEqual(entry['size'],7)
+
+    def test_manifest_keeps_intel_when_present_but_does_not_require_it(self):
+        from version import __version__
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for suffix in ('macos-arm64.pkg', 'macos-x64.pkg', 'macos-x64.dmg',
+                           'windows-x64-setup.exe', 'linux-x64.deb'):
+                (root / f'MacController-{__version__}-{suffix}').write_bytes(b'package')
+            subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] / 'packaging/manifest.py'), tmp], check=True)
+            platforms = json.loads((root / 'update-manifest.json').read_text())['platforms']
+            self.assertIn('macos-x64', platforms)
+            self.assertIn('macos-x64-disk-image', platforms)
 
     def test_system_commands_do_not_inherit_bundled_libraries(self):
         with patch.object(runtime_support.sys, 'frozen', True, create=True), patch.dict(

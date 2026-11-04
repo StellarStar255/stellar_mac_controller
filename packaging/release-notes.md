@@ -3,8 +3,11 @@
 - Tasks retain their creation-time backend, model, reasoning effort, and confirmation settings. Existing application permissions still apply. Draft messages are preserved while scheduled work runs.
 - Sleep, macOS screen lock, and other assistant work delay execution. Missed occurrences are combined into one run per task. Pending tasks survive restart; interrupted running tasks are paused for review before manual resume. The app does not wake a sleeping computer or execute while quit.
 - Improved macOS interface reading, including WeChat: try accessible text first, inspect navigation/content children when needed, and report when only window controls are readable.
+- **v0.3.5 is the final Mac Intel release.** This release retains both Mac architectures; future releases support Mac Apple Silicon, Windows x64 and Linux x64.
 
 新增持久化定时任务：支持“30 分钟后检查微信”和“每隔 30 分钟检查微信”，结果保存到原对话并尝试桌面通知。在设置或托盘的「定时任务」中查看、暂停、恢复和取消。程序需保持运行；睡眠、macOS 锁屏或忙碌时延后补跑一次。执行中被退出或崩溃打断的任务会暂停，检查结果后手动恢复。同时改进微信等程序的界面文字读取。
+
+**v0.3.5 为最后一个 Mac Intel 版本**。本次保留已完成的 Intel 安装包，后续只维护 Mac Apple Silicon、Windows x64 和 Linux x64。
 
 For manual DMG updates, quit the running app before replacing it. Linux desktop control requires X11. Local CLI backends require a separately installed and signed-in Claude Code or Codex CLI.
 

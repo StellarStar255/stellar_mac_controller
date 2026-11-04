@@ -19,12 +19,12 @@ Download the installer for your computer from the [latest release](https://githu
 | Platform | File | Installation |
 | --- | --- | --- |
 | macOS, Apple Silicon | `macos-arm64.dmg` | Double-click, then drag Mac Controller into Applications. |
-| macOS, Intel | `macos-x64.dmg` | Double-click, then drag Mac Controller into Applications. |
+| macOS, Intel (final release: v0.3.5) | `macos-x64.dmg` | Double-click, then drag Mac Controller into Applications. |
 | Windows 10/11, x64 | `windows-x64-setup.exe` | Double-click to install for your user and create a desktop shortcut. |
 | Ubuntu/Debian, x64 | `linux-x64.deb` | Open with your system software installer. Ubuntu 22.04+ or equivalent. |
 | Other Linux x64 / per-user install | `linux-x64.run` | Run `sh <downloaded-file>.run`. Launch from the applications menu. |
 
-macOS also provides `.pkg` installers for guided installation and in-app updates. For a DMG update, quit Mac Controller before replacing the application.
+macOS also provides `.pkg` installers for guided installation and in-app updates. For a DMG update, quit Mac Controller before replacing the application. **v0.3.5 is the final Mac Intel release.** Future releases support Mac Apple Silicon, Windows x64 and Linux x64; older Intel downloads remain available in their releases.
 
 The application has its own Dock/taskbar icon and a menu bar/system tray icon. Use the tray menu to open the window, open Settings or Quit. Closing the window keeps the app running when the tray is available; choose **Quit** to exit. On Linux desktops without a system tray, closing the window exits the app.
 
@@ -121,13 +121,13 @@ python packaging/smoke.py
 
 Windows also requires Inno Setup 6. Linux builds require `dpkg-deb`; run GUI smoke tests in an X11 session or with `xvfb-run -a`.
 
-The version is defined in `version.py`. Push a matching `vX.Y.Z` tag to build on native Mac ARM, Mac Intel, Windows x64 and Linux x64 runners. GitHub Actions publishes the installers, `SHA256SUMS` and `update-manifest.json` only after all builds and smoke tests pass. A manual workflow run performs build validation without publishing.
+The version is defined in `version.py`. Push a matching `vX.Y.Z` tag to build on native Mac Apple Silicon, Windows x64 and Linux x64 runners. GitHub Actions stages the installers, `SHA256SUMS` and `update-manifest.json` only after all builds and smoke tests pass. A manual workflow run performs build validation without publishing. Mac Intel builds ended with v0.3.5.
 
 Main files: `app.py` (interface), `i18n.py` (translations), `backends.py` (AI backends), `mac_tools.py` / `desktop_tools.py` (computer tools), `mcp_server.py` (stdio MCP), `chat_store.py` (conversations), `updater.py` (verified downloads), and `packaging/` (installers and smoke tests).
 
 ### Finalize macOS distribution signing
 
-Tag builds stage a **draft release**. Before publishing it, download both macOS DMGs and finalize them on a Mac with a Developer ID Application certificate and a configured `notarytool` keychain profile:
+Tag builds stage a **draft release**. Before publishing it, download the Apple Silicon DMG and finalize it on a Mac with a Developer ID Application certificate and a configured `notarytool` keychain profile:
 
 ```sh
 python3 packaging/sign_macos.py /path/to/unsigned/*-macos-*.dmg \

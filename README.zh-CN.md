@@ -39,12 +39,12 @@ Codex 通过 `exec --json` 接入，Mac 操作统一使用本项目的 MCP 工�
 | 系统 | 安装包 | 安装方式 |
 | --- | --- | --- |
 | macOS Apple Silicon | `macos-arm64.dmg` | 双击后将程序拖入 Applications |
-| macOS Intel | `macos-x64.dmg` | 双击后将程序拖入 Applications |
+| macOS Intel（最后版本 v0.3.5） | `macos-x64.dmg` | 双击后将程序拖入 Applications |
 | Windows 10/11 x64 | `windows-x64-setup.exe` | 双击按提示安装，生成桌面快捷方式，无需管理员权限 |
 | Ubuntu/Debian x64（Ubuntu 22.04+ 或相当版本） | `linux-x64.deb` | 双击交给系统软件安装器安装 |
 | 其它 Linux x64 / 用户目录安装 | `linux-x64.run` | 运行 `sh 下载的文件名.run`，安装到用户目录，应用菜单中启动 |
 
-macOS 同时提供 `.pkg` 向导安装包，程序内更新使用该格式。通过 DMG 更新时，请先退出程序再替换旧版本。
+macOS 同时提供 `.pkg` 向导安装包，程序内更新使用该格式。通过 DMG 更新时，请先退出程序再替换旧版本。**v0.3.5 是最后一个提供 Mac Intel 安装包的版本**；之后只维护 Mac Apple Silicon、Windows x64 和 Linux x64。历史 Intel 安装包保留在对应 Release 中。
 
 程序有独立的 Dock / 任务栏图标，以及顶部菜单栏 / 系统托盘图标。托盘菜单可打开主窗口、打开设置或退出程序。有托盘时关闭窗口会保留后台运行，选择「退出程序」才会结束；Linux 桌面不支持系统托盘时，关闭窗口会直接退出。
 
@@ -73,7 +73,7 @@ python3 launcher.py
 
 ## 构建与发布
 
-在目标系统安装依赖和 `pyinstaller==6.21.0` 后运行 `python packaging/build.py`。Windows 还需要 Inno Setup 6。`python packaging/smoke.py` 验证冻结后的界面、MCP 和安装包。版本在 `version.py` 中维护；推送相同版本的 `vX.Y.Z` tag 后，GitHub Actions 在四个原生环境（Mac ARM/Intel、Windows x64、Linux x64）构建并测试，全部成功后发布安装包、更新清单和 SHA256SUMS。普通手动运行只构建验证，不发布 Release。
+在目标系统安装依赖和 `pyinstaller==6.21.0` 后运行 `python packaging/build.py`。Windows 还需要 Inno Setup 6。`python packaging/smoke.py` 验证冻结后的界面、MCP 和安装包。版本在 `version.py` 中维护；推送相同版本的 `vX.Y.Z` tag 后，GitHub Actions 在三个原生环境（Mac Apple Silicon、Windows x64、Linux x64）构建并测试，全部成功后暂存安装包、更新清单和 SHA256SUMS。Mac Intel 构建止于 v0.3.5。普通手动运行只构建验证，不发布 Release。
 
 第一次运行需要在 **系统设置 → 隐私与安全性** 里给启动它的终端（或 Python）打开：
 - **辅助功能**：读取界面元素、模拟鼠标键盘

@@ -13,8 +13,6 @@ jobs:
         include:
           - runner: macos-15
             platform: macos-arm64
-          - runner: macos-15-intel
-            platform: macos-x64
           - runner: windows-2022
             platform: windows-x64
           - runner: ubuntu-22.04
@@ -66,7 +64,7 @@ jobs:
           merge-multiple: true
       - run: python packaging/manifest.py release
       # Developer ID keys stay in the maintainer's local keychain. Finalize the
-      # two DMGs with packaging/sign_macos.py before publishing this draft.
+      # Apple Silicon DMG with packaging/sign_macos.py before publishing this draft.
       - name: Stage draft installers, checksums and update manifest
         env:
           GH_TOKEN: ${{ github.token }}
