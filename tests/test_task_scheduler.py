@@ -99,7 +99,7 @@ class SchedulerTests(unittest.TestCase):
         ]
         result = subprocess.run([sys.executable, 'mcp_server.py'],
                                 input='\n'.join(json.dumps(r) for r in requests) + '\n',
-                                text=True, capture_output=True, timeout=10,
+                                text=True, encoding='utf-8', capture_output=True, timeout=10,
                                 env={**os.environ, 'MAC_CTRL_WORKDIR': str(folder)})
         self.assertEqual(result.returncode, 0, result.stderr)
         replies = [json.loads(line)['result'] for line in result.stdout.splitlines()]
