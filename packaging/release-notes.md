@@ -1,11 +1,10 @@
-- macOS **Command-Shift-M is global by default**: summon the controller from another app or from the tray; toggle compact view while the controller is active. Turn it off in Settings to use a window-only shortcut. Conflicts fall back to the local shortcut.
-- Compact view now uses **Command-Shift-M** on macOS and **Ctrl-Shift-M** on Windows/Linux. The button displays the current shortcut.
-- **Keep on top is off by default.** Upgrading resets the previous default once; later explicit choices are remembered.
-- Fixed macOS Dock visibility and Command-M window activation by removing the background-only app setting.
-- macOS now provides **DMG installers for Apple Silicon and Intel**: open the disk image and drag **Mac Controller.app** into **Applications**. PKG installers remain available for guided installation and in-app updates.
-- A dedicated application icon appears in the Dock/taskbar. Windows executables and Linux application launchers also include the icon.
-- Added a macOS menu bar / Windows and Linux system tray menu: **Open main window**, **Settings**, and **Quit**. Closing the window keeps the app running when a tray is available; choose Quit to exit.
-- Tray labels follow the selected English / 简体中文 language. Conversations, settings and drafts are preserved.
+- Added **persistent scheduled tasks** to all three backends. Ask for a one-time check, such as “Check WeChat in 30 minutes,” or a recurring check, such as “Check WeChat every 30 minutes.”
+- Tasks run automatically while the app stays open, save results to the original conversation, and attempt a desktop notification. Open **Scheduled tasks** in Settings or the tray menu to view, pause, resume, or cancel tasks.
+- Tasks retain their creation-time backend, model, reasoning effort, and confirmation settings. Existing application permissions still apply. Draft messages are preserved while scheduled work runs.
+- Sleep, macOS screen lock, and other assistant work delay execution. Missed occurrences are combined into one run per task. Pending tasks survive restart; interrupted running tasks are paused for review before manual resume. The app does not wake a sleeping computer or execute while quit.
+- Improved macOS interface reading, including WeChat: try accessible text first, inspect navigation/content children when needed, and report when only window controls are readable.
+
+新增持久化定时任务：支持“30 分钟后检查微信”和“每隔 30 分钟检查微信”，结果保存到原对话并尝试桌面通知。在设置或托盘的「定时任务」中查看、暂停、恢复和取消。程序需保持运行；睡眠、macOS 锁屏或忙碌时延后补跑一次。执行中被退出或崩溃打断的任务会暂停，检查结果后手动恢复。同时改进微信等程序的界面文字读取。
 
 For manual DMG updates, quit the running app before replacing it. Linux desktop control requires X11. Local CLI backends require a separately installed and signed-in Claude Code or Codex CLI.
 
